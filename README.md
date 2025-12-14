@@ -28,20 +28,26 @@ Et kraftig kommandolinjeverktøy for [Domeneshop API](https://api.domeneshop.no/
 
 <table>
 <tr>
-<td width="50%">
+<td width="33%">
 
 ### macOS
 ```bash
-# Dobbeltklikk på filen eller kjør:
 ./domeneshop.command
 ```
 
 </td>
-<td width="50%">
+<td width="33%">
+
+### Linux
+```bash
+./domeneshop.sh
+```
+
+</td>
+<td width="33%">
 
 ### Windows
 ```batch
-REM Dobbeltklikk på filen eller kjør:
 domeneshop.bat
 ```
 
