@@ -25,4 +25,12 @@ build/
 Thumbs.db
 
 # AI
-.claude/
+.claude
+.cursor
+.openai
+.anthropic
+.gemini
+.google
+.microsoft
+.amazon
+.deepseek
