@@ -273,6 +273,11 @@ Bruk `--json` for å se detaljert feilmelding:
 domeneshop domains list --json
 ```
 
+## Ansvarsfraskrivelse
+
+Dette er et uoffisielt prosjekt og er ikke tilknyttet Domeneshop AS.
+Prosjektet bruker [Domeneshop sitt offentlige API](https://api.domeneshop.no/docs/).
+
 ## Lisens
 
 MIT License - se [LICENSE](LICENSE) for detaljer.

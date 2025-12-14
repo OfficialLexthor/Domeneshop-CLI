@@ -12,7 +12,7 @@ setup(
     description="CLI-verktøy for Domeneshop API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ditt-brukernavn/domeneshop-cli",
+    url="https://github.com/OfficialLexthor/Domeneshop-CLI",
     py_modules=["domeneshop_cli"],
     python_requires=">=3.8",
     install_requires=[
