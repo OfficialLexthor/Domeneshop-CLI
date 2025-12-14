@@ -1,28 +1,69 @@
+<div align="center">
+
 # Domeneshop CLI
 
-Et kommandolinjeverktøy for [Domeneshop API](https://api.domeneshop.no/docs/).
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)]()
+
+Et kraftig kommandolinjeverktøy for [Domeneshop API](https://api.domeneshop.no/docs/).
+
+[Funksjoner](#funksjoner) • [Hurtigstart](#hurtigstart) • [Installasjon](#installasjon) • [Dokumentasjon](#bruk) • [Bidra](#bidra)
+
+</div>
+
+---
 
 ## Funksjoner
 
-- 📋 **Domener** - List og vis domenedetaljer
-- 🌐 **DNS** - Administrer DNS-poster (A, AAAA, CNAME, MX, TXT, SRV)
-- 🔄 **Forwards** - Administrer HTTP-videresendinger
-- 📄 **Fakturaer** - List og vis fakturaer
-- ⚡ **DDNS** - Oppdater dynamisk DNS
+| Funksjon | Beskrivelse |
+|----------|-------------|
+| 📋 **Domener** | List og vis domenedetaljer |
+| 🌐 **DNS** | Administrer DNS-poster (A, AAAA, CNAME, MX, TXT, SRV) |
+| 🔄 **Forwards** | Administrer HTTP-videresendinger |
+| 📄 **Fakturaer** | List og vis fakturaer |
+| ⚡ **DDNS** | Oppdater dynamisk DNS |
 
 ## Hurtigstart
 
-**Mac:** Dobbeltklikk på `domeneshop.command`
+<table>
+<tr>
+<td width="50%">
 
-**Windows:** Dobbeltklikk på `domeneshop.bat`
+### macOS
+```bash
+# Dobbeltklikk på filen eller kjør:
+./domeneshop.command
+```
 
-Første gang opprettes virtuelt miljø og avhengigheter installeres automatisk.
+</td>
+<td width="50%">
+
+### Windows
+```batch
+REM Dobbeltklikk på filen eller kjør:
+domeneshop.bat
+```
+
+</td>
+</tr>
+</table>
+
+> **Note**
+> Første gang opprettes virtuelt miljø og avhengigheter installeres automatisk.
 
 ### Interaktivt menysystem
 
 Når du starter programmet får du en brukervennlig meny:
 
 ```
+ ____                                       _                    ____ _     ___
+|  _ \  ___  _ __ ___   ___ _ __   ___  ___| |__   ___  _ __    / ___| |   |_ _|
+| | | |/ _ \| '_ ` _ \ / _ \ '_ \ / _ \/ __| '_ \ / _ \| '_ \  | |   | |    | |
+| |_| | (_) | | | | | |  __/ | | |  __/\__ \ | | | (_) | |_) | | |___| |___ | |
+|____/ \___/|_| |_| |_|\___|_| |_|\___||___/_| |_|\___/| .__/   \____|_____|___|
+                                                       |_|
+
 HOVEDMENY
 
   1) 📋 Domener
@@ -36,257 +77,193 @@ HOVEDMENY
   0) 🚪 Avslutt
 ```
 
-Hver undermeny lar deg enkelt:
-- **Domener** - Liste og vise domenedetaljer
-- **DNS** - Liste, legge til, oppdatere og slette DNS-poster (med TTL-støtte)
-- **HTTP-videresendinger** - Administrere videresendinger
-- **Fakturaer** - Se alle eller kun ubetalte fakturaer
-- **DDNS** - Oppdatere dynamisk DNS
-- **Innstillinger** - Konfigurere API-credentials
-- **Avansert modus** - Skrive kommandoer direkte
+<details>
+<summary><strong>Vis alle menyvalg</strong></summary>
 
-## Installasjon (manuell)
+| Meny | Funksjoner |
+|------|------------|
+| **Domener** | Liste og vise domenedetaljer |
+| **DNS** | Liste, legge til, oppdatere og slette DNS-poster (med TTL-støtte) |
+| **HTTP-videresendinger** | Administrere videresendinger |
+| **Fakturaer** | Se alle eller kun ubetalte fakturaer |
+| **DDNS** | Oppdatere dynamisk DNS |
+| **Innstillinger** | Konfigurere API-credentials |
+| **Avansert modus** | Skrive kommandoer direkte |
+
+</details>
+
+## Installasjon
+
+### Via pip (anbefalt)
 
 ```bash
-# Klon repositoriet
-git clone https://github.com/officiallexthor/domeneshop-cli.git
-cd domeneshop-cli
-
-# Installer med pip
+git clone https://github.com/OfficialLexthor/Domeneshop-CLI.git
+cd Domeneshop-CLI
 pip install -e .
+```
 
-# Eller installer avhengigheter manuelt
+### Manuelt
+
+```bash
+git clone https://github.com/OfficialLexthor/Domeneshop-CLI.git
+cd Domeneshop-CLI
 pip install -r requirements.txt
 ```
 
 ## Oppsett
 
+### 1. Hent API-credentials
+
 1. Logg inn på [Domeneshop](https://www.domeneshop.no)
 2. Gå til [API-administrasjon](https://www.domeneshop.no/admin?view=api)
 3. Generer et nytt API-token
 
-### Alternativ 1: Interaktiv innlogging (anbefalt)
+### 2. Konfigurer CLI
 
-Kjør en vilkårlig kommando, og du blir bedt om å skrive inn credentials:
-
-```bash
-domeneshop domains list
-# Blir spurt om token og secret, med mulighet for å lagre
-```
-
-Eller kjør configure direkte:
+<details open>
+<summary><strong>Alternativ 1: Interaktiv innlogging (anbefalt)</strong></summary>
 
 ```bash
 domeneshop configure
+# Følg instruksjonene for å lagre credentials
 ```
 
-Credentials lagres i `~/.domeneshop-credentials`.
+Credentials lagres sikkert i `~/.domeneshop-credentials`.
 
-### Alternativ 2: Miljøvariabler
+</details>
+
+<details>
+<summary><strong>Alternativ 2: Miljøvariabler</strong></summary>
 
 ```bash
 export DOMENESHOP_TOKEN='din-token'
 export DOMENESHOP_SECRET='din-hemmelighet'
 ```
 
-Legg disse linjene i din `~/.bashrc` eller `~/.zshrc` for permanent konfigurasjon.
+Legg i `~/.bashrc` eller `~/.zshrc` for permanent konfigurasjon.
+
+</details>
 
 ## Bruk
 
 ### Domener
 
 ```bash
-# List alle domener
-domeneshop domains list
-
-# Filtrer domener
-domeneshop domains list --filter ".no"
-
-# Vis detaljer for et domene
-domeneshop domains show 12345
-
-# JSON-output
-domeneshop domains list --json
+domeneshop domains list              # List alle domener
+domeneshop domains list --filter .no # Filtrer domener
+domeneshop domains show 12345        # Vis domenedetaljer
+domeneshop domains list --json       # JSON-output
 ```
 
 ### DNS
 
 ```bash
-# List DNS-poster for et domene
-domeneshop dns list 12345
+# List og vis
+domeneshop dns list 12345                    # List alle poster
+domeneshop dns list 12345 --type A           # Filtrer på type
+domeneshop dns show 12345 67890              # Vis spesifikk post
 
-# Filtrer på type
-domeneshop dns list 12345 --type A
-
-# Filtrer på host
-domeneshop dns list 12345 --host www
-
-# Vis en spesifikk DNS-post
-domeneshop dns show 12345 67890
-
-# Legg til A-post
+# Opprett poster
 domeneshop dns add 12345 --type A --host www --data 192.168.1.1
-
-# Legg til CNAME
 domeneshop dns add 12345 --type CNAME --host blog --data www.example.com
-
-# Legg til MX-post
 domeneshop dns add 12345 --type MX --host @ --data mx.example.com --priority 10
-
-# Legg til TXT-post (f.eks. SPF)
 domeneshop dns add 12345 --type TXT --host @ --data "v=spf1 include:_spf.domeneshop.no ~all"
 
-# Legg til SRV-post
-domeneshop dns add 12345 --type SRV --host _sip._tcp --data sip.example.com \
-    --priority 10 --weight 100 --port 5060
-
-# Oppdater en DNS-post
+# Oppdater og slett
 domeneshop dns update 12345 67890 --data 192.168.1.2
-
-# Slett en DNS-post
-domeneshop dns delete 12345 67890
-
-# Slett uten bekreftelse
 domeneshop dns delete 12345 67890 --yes
 ```
 
 ### HTTP-videresendinger
 
 ```bash
-# List videresendinger
-domeneshop forwards list 12345
-
-# Vis en videresending
-domeneshop forwards show 12345 www
-
-# Legg til videresending
-domeneshop forwards add 12345 --host www --url https://www.example.com
-
-# Oppdater videresending
+domeneshop forwards list 12345                              # List alle
+domeneshop forwards add 12345 --host www --url https://example.com
 domeneshop forwards update 12345 www --url https://ny-url.com
-
-# Slett videresending
 domeneshop forwards delete 12345 www
 ```
 
 ### Fakturaer
 
 ```bash
-# List alle fakturaer
-domeneshop invoices list
-
-# Filtrer på status
-domeneshop invoices list --status unpaid
-
-# Vis en faktura
-domeneshop invoices show 12345
+domeneshop invoices list                 # Alle fakturaer
+domeneshop invoices list --status unpaid # Kun ubetalte
+domeneshop invoices show 12345           # Vis detaljer
 ```
 
 ### Dynamisk DNS (DDNS)
 
 ```bash
-# Oppdater DDNS med din egen IP
-domeneshop ddns www.example.com
-
-# Oppdater DDNS med spesifikk IP
-domeneshop ddns www.example.com --ip 192.168.1.1
-
-# Oppdater flere hostnames samtidig
-domeneshop ddns "example.com,www.example.com"
-
-# Oppdater med både IPv4 og IPv6
-domeneshop ddns www.example.com --ip "1.2.3.4,2001:db8::1"
+domeneshop ddns www.example.com                    # Bruk din IP
+domeneshop ddns www.example.com --ip 192.168.1.1   # Spesifikk IP
+domeneshop ddns "example.com,www.example.com"      # Flere hostnames
 ```
 
-### Hjelpefunksjoner
+## Avanserte eksempler
+
+<details>
+<summary><strong>Finn domain-ID fra domenenavn</strong></summary>
 
 ```bash
-# Vis hjelp
-domeneshop --help
-domeneshop dns --help
-
-# Vis versjon
-domeneshop --version
-
-# Sett opp credentials interaktivt
-domeneshop configure
-
-# Slett lagrede credentials
-domeneshop configure --delete
-```
-
-## JSON-output
-
-Alle `list` og `show` kommandoer støtter `--json` for maskinlesbar output:
-
-```bash
-domeneshop domains list --json | jq '.[] | .domain'
-```
-
-## Eksempler
-
-### Finn domain-ID fra domenenavn
-
-```bash
-# List domener og finn ID
 domeneshop domains list --json | jq '.[] | select(.domain=="example.no") | .id'
 ```
 
-### Backup av DNS-poster
+</details>
+
+<details>
+<summary><strong>Backup av DNS-poster</strong></summary>
 
 ```bash
-# Eksporter alle DNS-poster til JSON
 domeneshop dns list 12345 --json > dns-backup.json
 ```
 
-### Batch-oppdatering med jq og xargs
+</details>
+
+<details>
+<summary><strong>Batch-sletting av TXT-poster</strong></summary>
 
 ```bash
-# Slett alle TXT-poster
 domeneshop dns list 12345 --type TXT --json | \
     jq '.[].id' | \
     xargs -I {} domeneshop dns delete 12345 {} --yes
 ```
 
+</details>
+
 ## Feilsøking
 
-### Autentisering feilet
-
-Kjør configure for å sette opp credentials på nytt:
-
-```bash
-domeneshop configure
-```
-
-Eller sjekk at miljøvariablene er satt:
-
-```bash
-echo $DOMENESHOP_TOKEN
-echo $DOMENESHOP_SECRET
-```
-
-### API-feil
-
-Bruk `--json` for å se detaljert feilmelding:
-
-```bash
-domeneshop domains list --json
-```
+| Problem | Løsning |
+|---------|---------|
+| Autentisering feilet | Kjør `domeneshop configure` |
+| API-feil | Bruk `--json` for detaljert feilmelding |
+| Mangler credentials | Sjekk `~/.domeneshop-credentials` eller miljøvariabler |
 
 ## Ansvarsfraskrivelse
 
-Dette er et uoffisielt prosjekt og er ikke tilknyttet Domeneshop AS.
-Prosjektet bruker [Domeneshop sitt offentlige API](https://api.domeneshop.no/docs/).
-
-## Lisens
-
-MIT License - se [LICENSE](LICENSE) for detaljer.
+> **Warning**
+> Dette er et **uoffisielt** prosjekt og er ikke tilknyttet Domeneshop AS.
+> Prosjektet bruker [Domeneshop sitt offentlige API](https://api.domeneshop.no/docs/).
 
 ## Bidra
 
-Pull requests er velkomne! For større endringer, opprett gjerne en issue først.
+Bidrag er velkomne! Se [CONTRIBUTING](CONTRIBUTING.md) for retningslinjer.
 
-## Lenker
+1. Fork prosjektet
+2. Opprett en feature branch (`git checkout -b feature/ny-funksjon`)
+3. Commit endringene (`git commit -m 'Legg til ny funksjon'`)
+4. Push til branchen (`git push origin feature/ny-funksjon`)
+5. Åpne en Pull Request
 
-- [Domeneshop API-dokumentasjon](https://api.domeneshop.no/docs/)
-- [Domeneshop](https://www.domeneshop.no)
+## Lisens
+
+Distribuert under MIT-lisensen. Se [`LICENSE`](LICENSE) for mer informasjon.
+
+---
+
+<div align="center">
+
+**[Domeneshop API-dokumentasjon](https://api.domeneshop.no/docs/)** • **[Domeneshop](https://www.domeneshop.no)**
+
+Utviklet av [Martin Clausen](https://github.com/OfficialLexthor)
+
+</div>
