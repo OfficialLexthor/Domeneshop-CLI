@@ -45,7 +45,7 @@ setup_env() {
 
 run_cmd() {
     echo ""
-    python domeneshop_cli.py $@
+    python domeneshop_cli.py "$@"
     echo ""
     echo -e "${GRAY}Trykk Enter for å fortsette...${NC}"
     read
