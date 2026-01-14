@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="no" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innstillinger - Domeneshop Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-dark-100 font-sans min-h-screen">
+    <!-- CSRF Token (injected by Flask) -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    
+    <!-- Background pattern -->
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950"></div>
+        <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+
+    <div class="min-h-screen flex items-center justify-center p-8">
+        <div class="w-full max-w-md">
+            <!-- Logo -->
+            <div class="text-center mb-8 animate-fade-in">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-white">Domeneshop Manager</h1>
+                <p class="text-dark-400 mt-2">Innstillinger</p>
+            </div>
+
+            <!-- Accounts List (Multi-account) -->
+            <div id="accounts-section" class="glass rounded-2xl p-6 mb-6 animate-fade-in hidden" style="animation-delay: 0.1s; opacity: 0;">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white">Kontoer</h2>
+                    <button onclick="showAddAccountForm()" class="flex items-center gap-2 px-3 py-1.5 bg-primary-600/20 hover:bg-primary-600/30 rounded-lg text-primary-400 text-sm transition-colors cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Legg til
+                    </button>
+                </div>
+                
+                <div id="accounts-list" class="space-y-2">
+                    <!-- Accounts will be populated by JS -->
+                </div>
+            </div>
+
+            <!-- Add Account Form -->
+            <div id="add-account-form" class="glass rounded-2xl p-6 mb-6 animate-fade-in hidden" style="opacity: 0;">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white">Legg til konto</h2>
+                    <button onclick="hideAddAccountForm()" class="p-1 text-dark-400 hover:text-white transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">Kontonavn</label>
+                        <input type="text" id="account-name" placeholder='F.eks. "Firma AS" eller "Privat"' class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Token</label>
+                        <input type="text" id="new-token" placeholder="API-token fra Domeneshop" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Secret</label>
+                        <input type="password" id="new-secret" placeholder="API-secret fra Domeneshop" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                    </div>
+                    
+                    {% if keyring_available %}
+                    <div class="flex items-center gap-3 p-3 bg-dark-800/50 rounded-xl">
+                        <input type="checkbox" id="new-prefer-keychain" checked class="w-4 h-4 rounded border-dark-600 text-primary-600 focus:ring-primary-500">
+                        <label for="new-prefer-keychain" class="text-sm text-dark-300">
+                            <span class="font-medium text-white">Lagre i system keychain</span>
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <button onclick="addAccount()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Legg til og test
+                    </button>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-dark-700">
+                    <a href="https://www.domeneshop.no/admin?view=api" target="_blank" class="flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Generer API-nøkler på domeneshop.no
+                    </a>
+                </div>
+            </div>
+
+            <!-- Settings Card (Legacy/Single account) -->
+            <div id="legacy-settings" class="glass rounded-2xl p-6 animate-fade-in" style="animation-delay: 0.1s; opacity: 0;">
+                <div id="auth-status" class="mb-6 p-4 rounded-xl bg-dark-800/50">
+                    <div class="flex items-center gap-3">
+                        <div id="status-icon" class="w-10 h-10 rounded-lg flex items-center justify-center">
+                            <!-- Icon will be inserted by JS -->
+                        </div>
+                        <div>
+                            <p id="status-text" class="font-medium text-white">Sjekker status...</p>
+                            <p id="status-subtext" class="text-sm text-dark-400"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="credentials-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Token</label>
+                        <input type="text" id="token" placeholder="Din API-token" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Secret</label>
+                        <input type="password" id="secret" placeholder="Din API-secret" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                    </div>
+                    
+                    <!-- Keychain option -->
+                    {% if keyring_available %}
+                    <div class="flex items-center gap-3 p-3 bg-dark-800/50 rounded-xl">
+                        <input type="checkbox" id="prefer-keychain" checked class="w-4 h-4 rounded border-dark-600 text-primary-600 focus:ring-primary-500">
+                        <label for="prefer-keychain" class="text-sm text-dark-300">
+                            <span class="font-medium text-white">Lagre i system keychain</span>
+                            <span class="block text-xs text-dark-400">Sikrere enn fil-lagring (anbefalt)</span>
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <button onclick="saveCredentials()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Lagre og test
+                    </button>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-dark-700">
+                    <a href="https://www.domeneshop.no/admin?view=api" target="_blank" class="flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Generer API-nøkler på domeneshop.no
+                    </a>
+                </div>
+
+                <!-- Migrate to keychain button -->
+                <div id="migrate-section" class="mt-4 hidden">
+                    <button onclick="migrateToKeychain()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-xl text-green-400 font-medium transition-all duration-200 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        Migrer til system keychain
+                    </button>
+                </div>
+
+                <div id="delete-section" class="mt-4 hidden">
+                    <button onclick="deleteCredentials()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-red-400 font-medium transition-all duration-200 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Slett lagrede credentials
+                    </button>
+                </div>
+            </div>
+
+            <!-- Security info -->
+            <div class="mt-6 p-4 glass rounded-xl animate-fade-in" style="animation-delay: 0.15s; opacity: 0;">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-primary-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    <div class="text-sm text-dark-400">
+                        <p class="font-medium text-dark-300 mb-1">Sikkerhetsinformasjon</p>
+                        <p>Credentials lagres lokalt på din maskin og sendes aldri til tredjeparter. System keychain gir kryptert lagring.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back link -->
+            <div class="text-center mt-6 animate-fade-in" style="animation-delay: 0.2s; opacity: 0;">
+                <a href="/" class="inline-flex items-center gap-2 text-dark-400 hover:text-white transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Tilbake til hovedsiden
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="glass rounded-xl px-6 py-4 flex items-center gap-3">
+            <div id="toast-icon"></div>
+            <span id="toast-message" class="text-white font-medium"></span>
+        </div>
+    </div>
+
+    <script>
+        // CSRF token from server
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        
+        // State
+        let accounts = [];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAccounts();
+            checkAuthStatus();
+        });
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            
+            msg.textContent = message;
+            
+            if (type === 'success') {
+                icon.innerHTML = '<svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else {
+                icon.innerHTML = '<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            }
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ==================== ACCOUNTS MANAGEMENT ====================
+        
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const data = await response.json();
+                
+                accounts = data.accounts || [];
+                
+                const accountsSection = document.getElementById('accounts-section');
+                const legacySettings = document.getElementById('legacy-settings');
+                const accountsList = document.getElementById('accounts-list');
+                
+                if (accounts.length > 0) {
+                    // Show accounts list
+                    accountsSection.classList.remove('hidden');
+                    accountsSection.style.opacity = '1';
+                    
+                    // Render accounts
+                    accountsList.innerHTML = accounts.map(acc => `
+                        <div class="flex items-center justify-between p-3 bg-dark-800/50 rounded-xl group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-primary-600/20 flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </div>
+                                <span class="font-medium text-white">${acc}</span>
+                            </div>
+                            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="testAccount('${acc}')" class="p-1.5 text-dark-400 hover:text-green-400 transition-colors cursor-pointer" title="Test tilkobling">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </button>
+                                <button onclick="deleteAccount('${acc}')" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors cursor-pointer" title="Slett">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Hide legacy form if we have accounts
+                    if (accounts.length >= 1) {
+                        legacySettings.classList.add('hidden');
+                    }
+                } else {
+                    // No accounts - show legacy form
+                    accountsSection.classList.add('hidden');
+                    legacySettings.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load accounts:', error);
+            }
+        }
+        
+        function showAddAccountForm() {
+            document.getElementById('add-account-form').classList.remove('hidden');
+            document.getElementById('add-account-form').style.opacity = '1';
+            document.getElementById('account-name').focus();
+        }
+        
+        function hideAddAccountForm() {
+            document.getElementById('add-account-form').classList.add('hidden');
+            document.getElementById('account-name').value = '';
+            document.getElementById('new-token').value = '';
+            document.getElementById('new-secret').value = '';
+        }
+        
+        async function addAccount() {
+            const name = document.getElementById('account-name').value.trim();
+            const token = document.getElementById('new-token').value.trim();
+            const secret = document.getElementById('new-secret').value.trim();
+            const preferKeychainEl = document.getElementById('new-prefer-keychain');
+            const preferKeychain = preferKeychainEl ? preferKeychainEl.checked : true;
+            
+            if (!name || !token || !secret) {
+                showToast('Fyll ut alle felt', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ name, token, secret, prefer_keychain: preferKeychain })
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 429) {
+                    showToast('For mange forsøk. Vent litt.', 'error');
+                    return;
+                }
+                
+                if (data.success) {
+                    showToast(`Konto '${name}' lagt til (${data.domain_count} domener)`);
+                    hideAddAccountForm();
+                    loadAccounts();
+                    checkAuthStatus();
+                } else {
+                    showToast(data.error || 'Kunne ikke legge til konto', 'error');
+                }
+            } catch (error) {
+                showToast('Feil ved tilkobling', 'error');
+            }
+        }
+        
+        async function testAccount(name) {
+            try {
+                const response = await fetch(`/api/accounts/${encodeURIComponent(name)}/test`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`${name}: OK (${data.domain_count} domener)`);
+                } else {
+                    showToast(`${name}: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke teste konto', 'error');
+            }
+        }
+        
+        async function deleteAccount(name) {
+            if (!confirm(`Er du sikker på at du vil slette konto '${name}'?`)) return;
+            
+            try {
+                const response = await fetch(`/api/accounts/${encodeURIComponent(name)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+                
+                if (response.status === 429) {
+                    showToast('For mange forsøk. Vent litt.', 'error');
+                    return;
+                }
+                
+                if (response.ok) {
+                    showToast(`Konto '${name}' slettet`);
+                    loadAccounts();
+                    checkAuthStatus();
+                } else {
+                    showToast('Kunne ikke slette konto', 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke slette konto', 'error');
+            }
+        }
+
+        // ==================== LEGACY AUTH STATUS ====================
+
+        async function checkAuthStatus() {
+            const statusIcon = document.getElementById('status-icon');
+            const statusText = document.getElementById('status-text');
+            const statusSubtext = document.getElementById('status-subtext');
+            const deleteSection = document.getElementById('delete-section');
+            const migrateSection = document.getElementById('migrate-section');
+
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+
+                if (data.authenticated) {
+                    statusIcon.innerHTML = '<svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    statusIcon.classList.add('bg-green-500/20');
+                    statusText.textContent = 'Tilkoblet';
+                    
+                    // Show storage type
+                    const storageInfo = data.storage_info;
+                    if (storageInfo) {
+                        let storageDesc = `${storageInfo.account_count || 1} konto(er) konfigurert`;
+                        if (storageInfo.storage_type === 'keychain') {
+                            storageDesc += ' (keychain)';
+                        } else if (storageInfo.storage_type === 'file') {
+                            storageDesc += ' (fil)';
+                            // Show migrate button if keychain is available
+                            if (storageInfo.keyring_available) {
+                                migrateSection.classList.remove('hidden');
+                            }
+                        } else if (storageInfo.storage_type === 'environment') {
+                            storageDesc += ' (miljøvariabler)';
+                        }
+                        statusSubtext.textContent = storageDesc;
+                    } else {
+                        statusSubtext.textContent = 'API-tilgang er konfigurert og fungerer';
+                    }
+                    
+                    deleteSection.classList.remove('hidden');
+                } else {
+                    statusIcon.innerHTML = '<svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                    statusIcon.classList.add('bg-yellow-500/20');
+                    statusText.textContent = 'Ikke konfigurert';
+                    statusSubtext.textContent = 'Legg inn API-nøkler nedenfor';
+                    deleteSection.classList.add('hidden');
+                    migrateSection.classList.add('hidden');
+                }
+            } catch (error) {
+                statusIcon.innerHTML = '<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                statusIcon.classList.add('bg-red-500/20');
+                statusText.textContent = 'Feil';
+                statusSubtext.textContent = 'Kunne ikke sjekke status';
+            }
+        }
+
+        async function saveCredentials() {
+            const token = document.getElementById('token').value.trim();
+            const secret = document.getElementById('secret').value.trim();
+            const preferKeychainEl = document.getElementById('prefer-keychain');
+            const preferKeychain = preferKeychainEl ? preferKeychainEl.checked : true;
+
+            if (!token || !secret) {
+                showToast('Fyll ut både token og secret', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/save', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ token, secret, prefer_keychain: preferKeychain })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 429) {
+                    showToast('For mange forsøk. Vent litt før du prøver igjen.', 'error');
+                    return;
+                }
+
+                if (data.success) {
+                    const storageMsg = data.storage_type === 'keychain' 
+                        ? 'Credentials lagret sikkert i keychain' 
+                        : 'Credentials lagret og verifisert';
+                    showToast(storageMsg);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showToast(data.error || 'Autentisering feilet', 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke lagre credentials', 'error');
+            }
+        }
+
+        async function deleteCredentials() {
+            if (!confirm('Er du sikker på at du vil slette ALLE lagrede credentials?')) return;
+
+            try {
+                const response = await fetch('/api/auth/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.status === 429) {
+                    showToast('For mange forsøk. Vent litt.', 'error');
+                    return;
+                }
+
+                if (response.ok) {
+                    showToast('Alle credentials slettet');
+                    loadAccounts();
+                    checkAuthStatus();
+                    document.getElementById('token').value = '';
+                    document.getElementById('secret').value = '';
+                } else {
+                    showToast('Kunne ikke slette credentials', 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke slette credentials', 'error');
+            }
+        }
+
+        async function migrateToKeychain() {
+            try {
+                const response = await fetch('/api/auth/migrate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Credentials migrert til keychain');
+                    loadAccounts();
+                    checkAuthStatus();
+                } else {
+                    showToast(data.error || 'Kunne ikke migrere', 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke migrere credentials', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

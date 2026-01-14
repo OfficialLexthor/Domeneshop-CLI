@@ -410,6 +410,7 @@ main_menu() {
         echo -e "  ${CYAN}4)${NC} 📄 Fakturaer"
         echo -e "  ${CYAN}5)${NC} ⚡ Dynamisk DNS (DDNS)"
         echo ""
+        echo -e "  ${CYAN}7)${NC} 🌍 Web GUI (nettleser)"
         echo -e "  ${CYAN}8)${NC} ⚙️  Innstillinger"
         echo -e "  ${CYAN}9)${NC} 📖 Avansert modus (skriv kommandoer)"
         echo -e "  ${CYAN}0)${NC} 🚪 Avslutt"
@@ -422,6 +423,10 @@ main_menu() {
             3) menu_forwards ;;
             4) menu_invoices ;;
             5) menu_ddns ;;
+            7)
+                echo -e "${YELLOW}▸ Starter Web GUI på http://localhost:5050${NC}"
+                python domeneshop_gui.py
+                ;;
             8) menu_settings ;;
             9)
                 show_logo

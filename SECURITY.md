@@ -26,12 +26,69 @@ Inkluder følgende informasjon:
 
 ## Sikkerhetspraksis
 
-Dette prosjektet:
-- Lagrer aldri API-credentials i kildekoden
-- Bruker sikker filrettigheter (600) for credential-filer
-- Kommuniserer kun over HTTPS med Domeneshop API
+Dette prosjektet implementerer flere lag med sikkerhet:
+
+### Credential-lagring (prioritert rekkefølge)
+
+1. **Miljøvariabler** (anbefalt for CI/CD og servermiljøer)
+   - `DOMENESHOP_TOKEN` og `DOMENESHOP_SECRET`
+   - Aldri eksponert i prosesslister
+
+2. **System Keychain** (anbefalt for desktop)
+   - macOS: Keychain Access
+   - Windows: Credential Locker
+   - Linux: Secret Service (GNOME Keyring/KWallet)
+   - Kryptert lagring av operativsystemet
+
+3. **Fil-basert** (fallback)
+   - Lokasjon: `~/.domeneshop-credentials`
+   - Rettigheter: 600 (kun eier kan lese/skrive)
+   - Klartekst JSON (ikke anbefalt for produksjon)
+
+### Migrere fra fil til keychain
+
+```bash
+domeneshop configure --migrate-to-keychain
+```
+
+### GUI-sikkerhet
+
+Web-grensesnittet implementerer:
+
+- **CSRF-beskyttelse**: Alle modifiserende forespørsler krever gyldig CSRF-token
+- **Rate limiting**: Autentiseringsendepunkter begrenses til 5 forsøk per minutt
+- **Sikre session-cookies**: HttpOnly, SameSite=Lax
+- **Input-validering**: Streng validering av API-nøkler
+
+### Audit logging
+
+Alle sikkerhetshendelser logges til `~/.domeneshop-audit.log`:
+
+| Hendelse | Beskrivelse |
+|----------|-------------|
+| `AUTH_SUCCESS` | Vellykket autentisering |
+| `AUTH_FAILURE` | Mislykket autentisering |
+| `CREDENTIALS_SAVED` | Credentials lagret |
+| `CREDENTIALS_DELETED` | Credentials slettet |
+| `DNS_CREATED/UPDATED/DELETED` | DNS-endringer |
+| `RATE_LIMIT_HIT` | Rate limit nådd |
+| `CSRF_FAILURE` | Ugyldig CSRF-token |
+
+### Kommunikasjon
+
+- All API-kommunikasjon skjer over HTTPS
+- API-base: `https://api.domeneshop.no/v0`
+- Ingen data sendes til tredjeparter
 
 ## Kjente begrensninger
 
-- Credentials lagres i klartekst i `~/.domeneshop-credentials`
-- Anbefaler bruk av miljøvariabler i produksjonsmiljøer
+- Fil-basert lagring bruker klartekst JSON
+- Audit-loggen lagres lokalt uten kryptering
+- GUI bør kun kjøres på localhost (ikke eksponeres til nettverk)
+
+## Anbefalinger
+
+1. **Produksjon**: Bruk miljøvariabler
+2. **Desktop**: Migrer til system keychain
+3. **GUI**: Kjør kun på localhost, ikke eksponer til nettverk
+4. **Overvåking**: Sjekk audit-loggen regelmessig

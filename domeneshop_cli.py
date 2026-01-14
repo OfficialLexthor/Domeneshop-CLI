@@ -7,6 +7,8 @@ Bruk: domeneshop [KOMMANDO] [ALTERNATIVER]
 Krever miljøvariabler:
   DOMENESHOP_TOKEN  - API-token fra domeneshop.no/admin?view=api
   DOMENESHOP_SECRET - API-hemmelighet
+
+Eller lagrede credentials via 'domeneshop configure'
 """
 
 import os
@@ -18,9 +20,25 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from tabulate import tabulate
 
+# Import av sikkerhetsmoduler
+from credentials import (
+    load_credentials, save_credentials, delete_credentials,
+    migrate_file_to_keychain, get_credentials_info, CONFIG_FILE,
+    KEYRING_AVAILABLE, list_accounts, save_account, load_account,
+    delete_account, rename_account, migrate_single_to_multi, needs_migration
+)
+from audit import (
+    log_auth_success, log_auth_failure, log_credentials_saved,
+    log_credentials_deleted, log_credentials_migrated, log_dns_change,
+    log_account_created, log_account_deleted, log_account_renamed,
+    log_account_selected
+)
+
+# Global variabel for valgt konto
+_selected_account: Optional[str] = None
+
 # API konfigurasjon
 API_BASE_URL = "https://api.domeneshop.no/v0"
-CONFIG_FILE = Path.home() / ".domeneshop-credentials"
 
 
 class DomeneshopClient:
@@ -56,6 +74,7 @@ class DomeneshopClient:
             
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
+                log_auth_failure("Invalid credentials")
                 raise click.ClickException("Autentisering feilet. Sjekk DOMENESHOP_TOKEN og DOMENESHOP_SECRET.")
             elif e.response.status_code == 404:
                 raise click.ClickException(f"Ressurs ikke funnet: {endpoint}")
@@ -129,27 +148,6 @@ class DomeneshopClient:
         return self._request("GET", "/dyndns/update", params=params)
 
 
-def load_credentials_from_file() -> Tuple[Optional[str], Optional[str]]:
-    """Les credentials fra konfigurasjonsfil"""
-    if not CONFIG_FILE.exists():
-        return None, None
-    try:
-        with open(CONFIG_FILE) as f:
-            data = json.load(f)
-            return data.get("token"), data.get("secret")
-    except (json.JSONDecodeError, IOError):
-        return None, None
-
-
-def save_credentials_to_file(token: str, secret: str) -> None:
-    """Lagre credentials til konfigurasjonsfil"""
-    with open(CONFIG_FILE, "w") as f:
-        json.dump({"token": token, "secret": secret}, f)
-    # Sett filrettigheter til kun eier (fungerer på Unix/Mac, ignoreres på Windows)
-    if sys.platform != "win32":
-        CONFIG_FILE.chmod(0o600)
-
-
 def prompt_for_credentials() -> Tuple[str, str]:
     """Spør bruker om credentials interaktivt"""
     click.echo("\nMangler API-credentials.")
@@ -161,17 +159,62 @@ def prompt_for_credentials() -> Tuple[str, str]:
     return token, secret
 
 
-def get_client() -> DomeneshopClient:
-    """Hent API-klient med autentisering"""
-    # 1. Prøv miljøvariabler først
-    token = os.environ.get("DOMENESHOP_TOKEN")
-    secret = os.environ.get("DOMENESHOP_SECRET")
+def select_account_interactive() -> Optional[str]:
+    """Interaktiv konto-velger"""
+    accounts = list_accounts()
+    
+    if len(accounts) == 0:
+        return None
+    elif len(accounts) == 1:
+        return accounts[0]
+    
+    click.echo("\nVelg konto:")
+    for i, name in enumerate(accounts, 1):
+        click.echo(f"  {i}) {name}")
+    
+    while True:
+        try:
+            choice = click.prompt("\nValg", type=int, default=1)
+            if 1 <= choice <= len(accounts):
+                selected = accounts[choice - 1]
+                log_account_selected(selected)
+                return selected
+            click.echo(f"Ugyldig valg. Velg 1-{len(accounts)}.")
+        except ValueError:
+            click.echo("Skriv inn et tall.")
 
-    # 2. Prøv konfigurasjonsfil
-    if not token or not secret:
-        token, secret = load_credentials_from_file()
 
-    # 3. Spør interaktivt
+def get_client(account_name: Optional[str] = None) -> DomeneshopClient:
+    """Hent API-klient med autentisering
+    
+    Args:
+        account_name: Navn på konto å bruke. Hvis None, bruk global valg eller velg interaktivt.
+    """
+    global _selected_account
+    
+    # Sjekk for migrering først
+    if needs_migration():
+        click.echo("\nEksisterende credentials funnet (gammelt format).")
+        name = click.prompt("Gi kontoen et navn", default="Standard")
+        success, msg = migrate_single_to_multi(name)
+        if success:
+            click.echo(f"✓ {msg}")
+    
+    # Bestem hvilken konto å bruke
+    effective_account = account_name or _selected_account
+    
+    # Sjekk om vi trenger å velge interaktivt
+    accounts = list_accounts()
+    if len(accounts) > 1 and not effective_account:
+        effective_account = select_account_interactive()
+        _selected_account = effective_account
+    elif len(accounts) == 1:
+        effective_account = accounts[0]
+    
+    # Last credentials
+    token, secret = load_credentials(effective_account)
+
+    # Spør interaktivt hvis ingen credentials
     if not token or not secret:
         token, secret = prompt_for_credentials()
 
@@ -179,12 +222,23 @@ def get_client() -> DomeneshopClient:
         client = DomeneshopClient(token, secret)
         try:
             client.get_domains()  # Test API-kall
+            log_auth_success()
             click.echo("\nAutentisering vellykket!")
 
             if click.confirm("Vil du lagre credentials for fremtidig bruk?", default=True):
-                save_credentials_to_file(token, secret)
-                click.echo(f"Lagret til {CONFIG_FILE}\n")
+                name = click.prompt("Gi kontoen et navn", default="Standard")
+                success, storage_type = save_account(name, token, secret)
+                if success:
+                    log_account_created(name, storage_type)
+                    log_credentials_saved(storage_type)
+                    if storage_type == "keychain":
+                        click.echo(f"✓ Konto '{name}' lagret sikkert i system keychain")
+                    else:
+                        click.echo(f"✓ Konto '{name}' lagret til {CONFIG_FILE}")
+                else:
+                    click.echo("Kunne ikke lagre credentials", err=True)
         except click.ClickException:
+            log_auth_failure("Invalid credentials on first setup")
             raise click.ClickException("Autentisering feilet. Sjekk token og secret.")
 
         return client
@@ -205,13 +259,30 @@ def print_table(data: List[Dict], headers: List[str], keys: List[str]):
 
 # CLI-grupper og kommandoer
 @click.group()
-@click.version_option(version="1.0.0", prog_name="domeneshop")
-def cli():
+@click.version_option(version="1.2.0", prog_name="domeneshop")
+@click.option("--account", "-a", "account_name", 
+              help="Velg konto å bruke (hopp over interaktiv velger)")
+@click.pass_context
+def cli(ctx, account_name: Optional[str]):
     """Domeneshop CLI - Administrer domener, DNS og mer via kommandolinjen.
     
-    Krever miljøvariabler DOMENESHOP_TOKEN og DOMENESHOP_SECRET.
+    Credentials kan konfigureres via:
+    - Miljøvariabler (DOMENESHOP_TOKEN, DOMENESHOP_SECRET)
+    - System keychain (anbefalt)
+    - Konfigurasjonsfil (~/.domeneshop-credentials)
+    
+    Støtter flere kontoer. Bruk --account for å velge konto direkte.
     """
-    pass
+    global _selected_account
+    ctx.ensure_object(dict)
+    
+    if account_name:
+        # Verifiser at kontoen finnes
+        accounts = list_accounts()
+        if account_name not in accounts:
+            raise click.ClickException(f"Konto '{account_name}' finnes ikke. Tilgjengelige: {', '.join(accounts)}")
+        _selected_account = account_name
+        ctx.obj["account"] = account_name
 
 
 # === DOMENER ===
@@ -366,7 +437,9 @@ def dns_add(domain_id: int, record_type: str, host: str, data: str, ttl: int,
         record["port"] = port
     
     result = client.create_dns_record(domain_id, record)
-    click.echo(f"✓ DNS-post opprettet med ID: {result.get('id')}")
+    record_id = result.get('id')
+    log_dns_change("create", domain_id, record_id, record_type)
+    click.echo(f"✓ DNS-post opprettet med ID: {record_id}")
 
 
 @dns.command("update")
@@ -401,6 +474,7 @@ def dns_update(domain_id: int, record_id: int, host: Optional[str], data: Option
         existing["port"] = port
     
     client.update_dns_record(domain_id, record_id, existing)
+    log_dns_change("update", domain_id, record_id, existing.get("type"))
     click.echo(f"✓ DNS-post #{record_id} oppdatert")
 
 
@@ -424,7 +498,10 @@ def dns_delete(domain_id: int, record_id: int, yes: bool):
             click.echo("Avbrutt.")
             return
     
+    # Hent type for logging før sletting
+    record = client.get_dns_record(domain_id, record_id)
     client.delete_dns_record(domain_id, record_id)
+    log_dns_change("delete", domain_id, record_id, record.get("type"))
     click.echo(f"✓ DNS-post #{record_id} slettet")
 
 
@@ -627,29 +704,70 @@ def ddns(hostnames: str, ips: Optional[str]):
             click.echo(f"✓ DDNS oppdatert: {h.strip()} → (din IP)")
 
 
-# === HJELPEFUNKSJONER ===
+# === KONFIGURASJON ===
 @cli.command()
 @click.option("--delete", is_flag=True, help="Slett lagrede credentials")
-def configure(delete: bool):
-    """Sett opp eller administrer autentisering"""
+@click.option("--migrate-to-keychain", is_flag=True, help="Migrer credentials fra fil til system keychain")
+@click.option("--status", is_flag=True, help="Vis detaljert status for credential-lagring")
+def configure(delete: bool, migrate_to_keychain: bool, status: bool):
+    """Sett opp eller administrer autentisering
+    
+    \b
+    Eksempler:
+      domeneshop configure                    # Interaktiv oppsett
+      domeneshop configure --status           # Vis lagringsinfo
+      domeneshop configure --migrate-to-keychain  # Migrer til keychain
+      domeneshop configure --delete           # Slett credentials
+    """
+    # Vis detaljert status
+    if status:
+        info = get_credentials_info()
+        click.echo("\nCredential-lagring status:")
+        click.echo(f"{'='*50}")
+        click.echo(f"  Aktiv kilde:    {info['storage_type']}")
+        click.echo(f"  Keyring:        {'Tilgjengelig' if info['keyring_available'] else 'Ikke tilgjengelig'}")
+        if info['keyring_backend']:
+            click.echo(f"  Keyring-backend: {info['keyring_backend']}")
+        click.echo(f"  Fil eksisterer: {'Ja' if info['file_exists'] else 'Nei'}")
+        click.echo(f"  Fil-sti:        {info['file_path']}")
+        click.echo(f"  Miljøvariabler: {'Konfigurert' if info['env_configured'] else 'Ikke satt'}")
+        return
+
+    # Migrer til keychain
+    if migrate_to_keychain:
+        if not KEYRING_AVAILABLE:
+            click.echo("Keyring er ikke tilgjengelig. Installer med: pip install keyring", err=True)
+            return
+        
+        success, message = migrate_file_to_keychain()
+        if success:
+            log_credentials_migrated("file", "keychain")
+            click.echo(f"✓ {message}")
+        else:
+            click.echo(f"✗ {message}", err=True)
+        return
+
+    # Slett credentials
     if delete:
-        if CONFIG_FILE.exists():
-            CONFIG_FILE.unlink()
-            click.echo("Credentials slettet.")
+        if delete_credentials():
+            log_credentials_deleted()
+            click.echo("✓ Alle credentials slettet (keychain og fil)")
         else:
             click.echo("Ingen lagrede credentials funnet.")
         return
 
     # Vis nåværende status
-    token_env = os.environ.get("DOMENESHOP_TOKEN")
-    file_token, _ = load_credentials_from_file()
-
+    info = get_credentials_info()
     click.echo("\nNåværende konfigurasjon:")
-    if token_env:
-        click.echo(f"  Miljøvariabel: DOMENESHOP_TOKEN er satt")
-    if file_token:
-        click.echo(f"  Fil: {CONFIG_FILE} finnes")
-    if not token_env and not file_token:
+    click.echo(f"  Lagringstype: {info['storage_type']}")
+    
+    if info['env_configured']:
+        click.echo("  Miljøvariabel DOMENESHOP_TOKEN er satt")
+    if info['keyring_available'] and info['storage_type'] == 'keychain':
+        click.echo("  Credentials lagret i system keychain")
+    if info['file_exists']:
+        click.echo(f"  Fil: {info['file_path']} finnes")
+    if info['storage_type'] == 'none':
         click.echo("  Ingen credentials konfigurert")
 
     click.echo()
@@ -661,11 +779,188 @@ def configure(delete: bool):
         client = DomeneshopClient(token, secret)
         try:
             client.get_domains()
-            click.echo("\nAutentisering vellykket!")
-            save_credentials_to_file(token, secret)
-            click.echo(f"Lagret til {CONFIG_FILE}")
+            log_auth_success()
+            click.echo("\n✓ Autentisering vellykket!")
+            
+            # Spør om lagringsmetode hvis keychain er tilgjengelig
+            if KEYRING_AVAILABLE:
+                use_keychain = click.confirm("Lagre i system keychain (anbefalt)?", default=True)
+                success, storage_type = save_credentials(token, secret, prefer_keychain=use_keychain)
+            else:
+                success, storage_type = save_credentials(token, secret, prefer_keychain=False)
+            
+            if success:
+                log_credentials_saved(storage_type)
+                if storage_type == "keychain":
+                    click.echo("✓ Lagret sikkert i system keychain")
+                else:
+                    click.echo(f"✓ Lagret til {CONFIG_FILE}")
+            else:
+                click.echo("✗ Kunne ikke lagre credentials", err=True)
+                
         except click.ClickException:
+            log_auth_failure("Invalid credentials during configure")
             raise click.ClickException("Autentisering feilet. Sjekk token og secret.")
+
+
+# === KONTOER ===
+@cli.group()
+def accounts():
+    """Administrer API-kontoer (multi-konto støtte)"""
+    pass
+
+
+@accounts.command("list")
+def accounts_list():
+    """List alle lagrede kontoer"""
+    account_names = list_accounts()
+    
+    if not account_names:
+        click.echo("Ingen kontoer konfigurert.")
+        click.echo("\nBruk 'domeneshop accounts add' for å legge til en konto.")
+        return
+    
+    info = get_credentials_info()
+    current = info.get("storage_type", "none")
+    
+    click.echo(f"\nKontoer ({len(account_names)} stk):")
+    click.echo(f"{'='*40}")
+    for i, name in enumerate(account_names, 1):
+        # Marker hvis dette er eneste/valgte konto
+        marker = " ← aktiv" if len(account_names) == 1 else ""
+        click.echo(f"  {i}. {name}{marker}")
+    
+    click.echo(f"\nLagring: {current}")
+
+
+@accounts.command("add")
+@click.argument("name")
+@click.option("--token", "-t", help="API-token (spørres interaktivt hvis utelatt)")
+@click.option("--secret", "-s", help="API-secret (spørres interaktivt hvis utelatt)")
+def accounts_add(name: str, token: Optional[str], secret: Optional[str]):
+    """Legg til en ny konto
+    
+    \b
+    Eksempler:
+      domeneshop accounts add "Firma AS"
+      domeneshop accounts add Privat --token xxx --secret yyy
+    """
+    # Sjekk at navnet ikke er brukt
+    existing = list_accounts()
+    if name in existing:
+        raise click.ClickException(f"Konto '{name}' finnes allerede")
+    
+    # Spør om credentials hvis ikke oppgitt
+    if not token or not secret:
+        click.echo(f"\nLegg til konto: {name}")
+        click.echo("Generer token og secret på: https://www.domeneshop.no/admin?view=api\n")
+        
+        if not token:
+            token = click.prompt("API-token", type=str)
+        if not secret:
+            secret = click.prompt("API-secret", type=str, hide_input=True)
+    
+    # Test credentials
+    client = DomeneshopClient(token, secret)
+    try:
+        domains = client.get_domains()
+        domain_count = len(domains) if domains else 0
+        log_auth_success()
+        click.echo(f"\n✓ Autentisering vellykket! ({domain_count} domener)")
+    except Exception:
+        log_auth_failure(f"Invalid credentials for account {name}")
+        raise click.ClickException("Autentisering feilet. Sjekk token og secret.")
+    
+    # Lagre
+    success, storage_type = save_account(name, token, secret)
+    if success:
+        log_account_created(name, storage_type)
+        click.echo(f"✓ Konto '{name}' lagt til ({storage_type})")
+    else:
+        raise click.ClickException(f"Kunne ikke lagre konto: {storage_type}")
+
+
+@accounts.command("remove")
+@click.argument("name")
+@click.option("--yes", "-y", is_flag=True, help="Bekreft sletting uten spørsmål")
+def accounts_remove(name: str, yes: bool):
+    """Slett en konto
+    
+    \b
+    Eksempler:
+      domeneshop accounts remove "Firma AS"
+      domeneshop accounts remove Privat -y
+    """
+    existing = list_accounts()
+    if name not in existing:
+        raise click.ClickException(f"Konto '{name}' finnes ikke")
+    
+    if not yes:
+        click.echo(f"\nDu er i ferd med å slette konto '{name}'")
+        if not click.confirm("Er du sikker?"):
+            click.echo("Avbrutt.")
+            return
+    
+    if delete_account(name):
+        log_account_deleted(name)
+        click.echo(f"✓ Konto '{name}' slettet")
+    else:
+        raise click.ClickException("Kunne ikke slette konto")
+
+
+@accounts.command("rename")
+@click.argument("old_name")
+@click.argument("new_name")
+def accounts_rename(old_name: str, new_name: str):
+    """Endre navn på en konto
+    
+    \b
+    Eksempler:
+      domeneshop accounts rename "Gammelt Navn" "Nytt Navn"
+    """
+    success, message = rename_account(old_name, new_name)
+    if success:
+        log_account_renamed(old_name, new_name)
+        click.echo(f"✓ {message}")
+    else:
+        raise click.ClickException(message)
+
+
+@accounts.command("test")
+@click.argument("name", required=False)
+def accounts_test(name: Optional[str]):
+    """Test tilkobling for en konto
+    
+    \b
+    Eksempler:
+      domeneshop accounts test           # Test alle kontoer
+      domeneshop accounts test "Firma"   # Test én konto
+    """
+    if name:
+        account_names = [name]
+    else:
+        account_names = list_accounts()
+    
+    if not account_names:
+        click.echo("Ingen kontoer å teste.")
+        return
+    
+    click.echo(f"\nTester {len(account_names)} konto(er)...")
+    click.echo(f"{'='*50}")
+    
+    for account in account_names:
+        token, secret = load_account(account)
+        if not token or not secret:
+            click.echo(f"  ✗ {account}: Kunne ikke laste credentials")
+            continue
+        
+        try:
+            client = DomeneshopClient(token, secret)
+            domains = client.get_domains()
+            domain_count = len(domains) if domains else 0
+            click.echo(f"  ✓ {account}: OK ({domain_count} domener)")
+        except Exception as e:
+            click.echo(f"  ✗ {account}: Feil - {e}")
 
 
 if __name__ == "__main__":

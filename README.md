@@ -127,19 +127,22 @@ pip install -r requirements.txt
 ### 2. Konfigurer CLI
 
 <details open>
-<summary><strong>Alternativ 1: Interaktiv innlogging (anbefalt)</strong></summary>
+<summary><strong>Alternativ 1: System Keychain (anbefalt for desktop)</strong></summary>
 
 ```bash
 domeneshop configure
-# Følg instruksjonene for å lagre credentials
+# Følg instruksjonene for å lagre credentials i system keychain
 ```
 
-Credentials lagres sikkert i `~/.domeneshop-credentials`.
+Credentials lagres kryptert via:
+- macOS: Keychain Access
+- Windows: Credential Locker
+- Linux: Secret Service (GNOME Keyring/KWallet)
 
 </details>
 
 <details>
-<summary><strong>Alternativ 2: Miljøvariabler</strong></summary>
+<summary><strong>Alternativ 2: Miljøvariabler (anbefalt for CI/CD)</strong></summary>
 
 ```bash
 export DOMENESHOP_TOKEN='din-token'
@@ -147,6 +150,22 @@ export DOMENESHOP_SECRET='din-hemmelighet'
 ```
 
 Legg i `~/.bashrc` eller `~/.zshrc` for permanent konfigurasjon.
+
+</details>
+
+<details>
+<summary><strong>Alternativ 3: Fil-basert (fallback)</strong></summary>
+
+Hvis keychain ikke er tilgjengelig, lagres credentials i `~/.domeneshop-credentials` med sikre filrettigheter (600).
+
+</details>
+
+<details>
+<summary><strong>Migrer eksisterende credentials til keychain</strong></summary>
+
+```bash
+domeneshop configure --migrate-to-keychain
+```
 
 </details>
 
@@ -236,13 +255,43 @@ domeneshop dns list 12345 --type TXT --json | \
 
 </details>
 
+## Web GUI
+
+Domeneshop Manager inkluderer også et web-basert grensesnitt:
+
+```bash
+python domeneshop_gui.py
+# Åpne http://localhost:5050 i nettleseren
+```
+
+GUI-et tilbyr:
+- Visuell administrasjon av domener og DNS
+- Paginering og søk
+- Responsivt design (mobil/desktop)
+- CSRF-beskyttelse og rate limiting
+
+## Sikkerhet
+
+Prosjektet implementerer flere sikkerhetslag:
+
+| Funksjon | Beskrivelse |
+|----------|-------------|
+| **Keychain-integrasjon** | Kryptert lagring via OS keychain |
+| **CSRF-beskyttelse** | Token-validering for alle modifiserende operasjoner |
+| **Rate limiting** | Brute-force beskyttelse på auth-endepunkter |
+| **Audit logging** | Logger sikkerhetshendelser til `~/.domeneshop-audit.log` |
+| **Sikre sessions** | HttpOnly, SameSite cookies |
+
+Se [SECURITY.md](SECURITY.md) for fullstendig sikkerhetsdokumentasjon.
+
 ## Feilsøking
 
 | Problem | Løsning |
 |---------|---------|
 | Autentisering feilet | Kjør `domeneshop configure` |
 | API-feil | Bruk `--json` for detaljert feilmelding |
-| Mangler credentials | Sjekk `~/.domeneshop-credentials` eller miljøvariabler |
+| Mangler credentials | Sjekk `domeneshop configure --status` |
+| Keychain utilgjengelig | Installer `pip install keyring` |
 
 ## Ansvarsfraskrivelse
 

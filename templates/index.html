@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="no" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domeneshop Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.1s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.2s; }
+        .stagger-5 { animation-delay: 0.25s; }
+        
+        /* Skeleton loading */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, rgba(51, 65, 85, 0.4) 25%, rgba(71, 85, 105, 0.6) 50%, rgba(51, 65, 85, 0.4) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+
+        /* Type badges */
+        .badge-A { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .badge-AAAA { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .badge-CNAME { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+        .badge-MX { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+        .badge-TXT { background: rgba(234, 179, 8, 0.2); color: #facc15; }
+        .badge-SRV { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+        .badge-NS { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
+        .badge-CAA { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .badge-TLSA { background: rgba(244, 63, 94, 0.2); color: #fb7185; }
+        .badge-DS { background: rgba(251, 146, 60, 0.2); color: #fdba74; }
+
+        /* Long text handling */
+        .dns-data-long {
+            word-break: break-all;
+            overflow-wrap: anywhere;
+        }
+
+        /* Mobile sidebar */
+        @media (max-width: 1023px) {
+            .sidebar-open {
+                transform: translateX(0);
+            }
+            .sidebar-closed {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-dark-100 font-sans min-h-screen">
+    <!-- CSRF Token (injected by Flask) -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950"></div>
+        <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden"></div>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-dark-900/95 lg:bg-dark-900/50 border-r border-dark-700/50 flex flex-col fixed h-full z-50 transition-transform duration-300 lg:translate-x-0 -translate-x-full">
+            <div class="p-4 lg:p-6 border-b border-dark-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-lg text-white">Domeneshop</h1>
+                            <p class="text-xs text-dark-400">Manager</p>
+                        </div>
+                    </div>
+                    <!-- Close button on mobile -->
+                    <button onclick="toggleSidebar()" class="lg:hidden p-2 text-dark-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Selector -->
+            <div id="account-selector" class="px-4 py-3 border-b border-dark-700/50 hidden">
+                <label class="block text-xs font-medium text-dark-500 uppercase tracking-wide mb-2">Konto</label>
+                <div class="relative">
+                    <select id="active-account" onchange="switchAccount()" class="w-full appearance-none bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 pr-8 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                    <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <button onclick="navigateTo('domains'); closeSidebarMobile()" id="nav-domains" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 bg-primary-600/20 text-primary-400 border border-primary-500/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="font-medium">Domener</span>
+                </button>
+
+                <button onclick="navigateTo('invoices'); closeSidebarMobile()" id="nav-invoices" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-dark-300 hover:bg-dark-800/50 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="font-medium">Fakturaer</span>
+                </button>
+
+                <button onclick="navigateTo('ddns'); closeSidebarMobile()" id="nav-ddns" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-dark-300 hover:bg-dark-800/50 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span class="font-medium">Dynamisk DNS</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-dark-700/50">
+                <a href="/settings" class="flex items-center gap-3 px-4 py-3 rounded-xl text-dark-400 hover:bg-dark-800/50 hover:text-white transition-all duration-200 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="font-medium">Innstillinger</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8">
+            <!-- Mobile header -->
+            <div class="lg:hidden flex items-center justify-between mb-4">
+                <button onclick="toggleSidebar()" class="p-2 text-dark-400 hover:text-white glass rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-white">Domeneshop</span>
+                </div>
+                <a href="/settings" class="p-2 text-dark-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Domains Section -->
+            <section id="section-domains" class="section">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white">Domener</h2>
+                        <p class="text-dark-400 text-sm sm:text-base mt-1">Administrer dine domener</p>
+                    </div>
+                    <button onclick="loadDomains()" class="flex items-center justify-center gap-2 px-4 py-2 bg-dark-800 hover:bg-dark-700 rounded-xl text-dark-300 hover:text-white transition-all duration-200 cursor-pointer w-full sm:w-auto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Oppdater
+                    </button>
+                </div>
+
+                <!-- Search and pagination controls -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+                    <div class="flex-1">
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" id="domain-search" oninput="filterDomains()" placeholder="Søk etter domene..." class="w-full bg-dark-800 border border-dark-600 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-end sm:self-auto">
+                        <span class="text-dark-400 text-sm whitespace-nowrap">Vis:</span>
+                        <select id="domains-per-page" onchange="changeDomainPageSize()" class="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="domains-list" class="grid gap-3 sm:gap-4">
+                    <!-- Domains will be loaded here -->
+                </div>
+
+                <!-- Pagination -->
+                <div id="domains-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                    <!-- Pagination will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Domain Detail Section -->
+            <section id="section-domain-detail" class="section hidden">
+                <!-- Breadcrumbs -->
+                <nav id="breadcrumbs" class="mb-4 sm:mb-6">
+                    <ol class="flex items-center gap-2 text-sm">
+                        <li>
+                            <button onclick="navigateTo('domains')" class="text-dark-400 hover:text-primary-400 transition-colors cursor-pointer flex items-center gap-1">
+                                <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                <span class="hidden sm:inline">Domener</span>
+                                <span class="sm:hidden">Tilbake</span>
+                            </button>
+                        </li>
+                        <li class="hidden sm:block text-dark-600">/</li>
+                        <li id="breadcrumb-domain" class="hidden sm:block text-white font-medium truncate max-w-[200px]"></li>
+                    </ol>
+                </nav>
+
+                <!-- Domain Header -->
+                <div class="glass rounded-2xl p-4 sm:p-6 mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shrink-0">
+                                <svg class="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 id="domain-detail-name" class="text-xl sm:text-2xl font-bold text-white"></h1>
+                                <div class="flex flex-wrap items-center gap-2 mt-1">
+                                    <span id="domain-detail-status" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
+                                    <span id="domain-detail-expiry" class="text-dark-400 text-sm"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <button onclick="loadDomainDetail(selectedDomain.id)" class="p-2.5 bg-dark-700 hover:bg-dark-600 rounded-xl text-dark-300 hover:text-white transition-all cursor-pointer" title="Oppdater">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                        <div class="bg-dark-800/50 rounded-xl p-3 sm:p-4">
+                            <p class="text-dark-500 text-xs uppercase tracking-wide">DNS-poster</p>
+                            <p id="stat-dns-count" class="text-xl sm:text-2xl font-bold text-white mt-1">-</p>
+                        </div>
+                        <div class="bg-dark-800/50 rounded-xl p-3 sm:p-4">
+                            <p class="text-dark-500 text-xs uppercase tracking-wide">Videresendinger</p>
+                            <p id="stat-forwards-count" class="text-xl sm:text-2xl font-bold text-white mt-1">-</p>
+                        </div>
+                        <div class="bg-dark-800/50 rounded-xl p-3 sm:p-4">
+                            <p class="text-dark-500 text-xs uppercase tracking-wide">Registrar</p>
+                            <p id="stat-registrar" class="text-lg sm:text-xl font-bold text-white mt-1 truncate">-</p>
+                        </div>
+                        <div class="bg-dark-800/50 rounded-xl p-3 sm:p-4">
+                            <p class="text-dark-500 text-xs uppercase tracking-wide">ID</p>
+                            <p id="stat-domain-id" class="text-xl sm:text-2xl font-bold text-white mt-1 font-mono">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="mb-6">
+                    <div class="flex gap-1 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" id="domain-tabs">
+                        <button onclick="showDomainTab('dns')" data-tab="dns" class="domain-tab px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-600/20 text-primary-400 border border-primary-500/30 cursor-pointer whitespace-nowrap shrink-0 transition-all active:scale-95">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                                </svg>
+                                DNS
+                            </span>
+                        </button>
+                        <button onclick="showDomainTab('forwards')" data-tab="forwards" class="domain-tab px-4 py-2.5 rounded-xl text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0 transition-all active:scale-95">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                </svg>
+                                Videresendinger
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DNS Tab Content -->
+                <div id="tab-dns" class="tab-content">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+                            <button onclick="filterDnsByType('')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600/20 text-primary-400 border border-primary-500/30 cursor-pointer whitespace-nowrap shrink-0" data-type="">Alle</button>
+                            <button onclick="filterDnsByType('A')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="A">A</button>
+                            <button onclick="filterDnsByType('AAAA')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="AAAA">AAAA</button>
+                            <button onclick="filterDnsByType('CNAME')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="CNAME">CNAME</button>
+                            <button onclick="filterDnsByType('MX')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="MX">MX</button>
+                            <button onclick="filterDnsByType('TXT')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="TXT">TXT</button>
+                            <button onclick="filterDnsByType('SRV')" class="dns-type-filter px-3 py-1.5 rounded-lg text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0" data-type="SRV">SRV</button>
+                        </div>
+                        <button onclick="showDnsModal()" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 rounded-xl text-white text-sm font-medium transition-all duration-200 cursor-pointer active:scale-95 w-full sm:w-auto shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Ny DNS-post
+                        </button>
+                    </div>
+                    <div id="dns-list" class="grid gap-3">
+                        <!-- DNS records will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Forwards Tab Content -->
+                <div id="tab-forwards" class="tab-content hidden">
+                    <div class="flex justify-end mb-4">
+                        <button onclick="showForwardModal()" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 rounded-xl text-white text-sm font-medium transition-all duration-200 cursor-pointer active:scale-95 w-full sm:w-auto">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Ny videresending
+                        </button>
+                    </div>
+                    <div id="forwards-list" class="grid gap-3">
+                        <!-- Forwards will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Invoices Section -->
+            <section id="section-invoices" class="section hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white">Fakturaer</h2>
+                        <p class="text-dark-400 text-sm sm:text-base mt-1">Se dine fakturaer (siste 3 år)</p>
+                    </div>
+                    <select id="invoice-filter" onchange="loadInvoices()" class="bg-dark-800 border border-dark-600 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer w-full sm:w-auto">
+                        <option value="">Alle</option>
+                        <option value="unpaid">Ubetalt</option>
+                        <option value="paid">Betalt</option>
+                        <option value="settled">Oppgjort</option>
+                    </select>
+                </div>
+                <div id="invoices-list" class="grid gap-3">
+                    <!-- Invoices will be loaded here -->
+                </div>
+            </section>
+
+            <!-- DDNS Section -->
+            <section id="section-ddns" class="section hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-white">Dynamisk DNS</h2>
+                        <p class="text-dark-400 text-sm sm:text-base mt-1">Oppdater DNS med din nåværende IP</p>
+                    </div>
+                </div>
+                
+                <div class="max-w-lg glass rounded-2xl p-4 sm:p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-dark-300 mb-2">Hostname</label>
+                            <input type="text" id="ddns-hostname" placeholder="www.example.com" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <p class="text-xs text-dark-500 mt-1">Flere hostnames kan separeres med komma</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-300 mb-2">IP-adresse (valgfritt)</label>
+                            <input type="text" id="ddns-ip" placeholder="La stå tom for å bruke din IP" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        <button onclick="updateDdns()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Oppdater DDNS
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- DNS Modal (Create/Edit) -->
+    <div id="dns-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass rounded-2xl p-4 sm:p-6 w-full max-w-lg animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="dns-modal-title" class="text-lg sm:text-xl font-bold text-white">Ny DNS-post</h3>
+                <button onclick="hideDnsModal()" class="text-dark-400 hover:text-white transition-colors cursor-pointer p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <input type="hidden" id="dns-edit-id">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Type</label>
+                    <select id="dns-type" onchange="updateDnsFormFields()" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                        <option value="A">A (IPv4)</option>
+                        <option value="AAAA">AAAA (IPv6)</option>
+                        <option value="CNAME">CNAME (Alias)</option>
+                        <option value="MX">MX (E-post)</option>
+                        <option value="TXT">TXT (Tekst)</option>
+                        <option value="SRV">SRV (Tjeneste)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Host</label>
+                    <input type="text" id="dns-host" placeholder="@ for rot, eller subdomene" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Data</label>
+                    <textarea id="dns-data" placeholder="IP-adresse, hostname eller tekst" rows="3" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y font-mono text-sm"></textarea>
+                    <p class="text-xs text-dark-500 mt-1">For lange TXT-records (SPF, DKIM) - skriv hele verdien her</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">TTL (sekunder)</label>
+                    <input type="number" id="dns-ttl" value="3600" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div id="dns-priority-field" class="hidden">
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Prioritet</label>
+                    <input type="number" id="dns-priority" value="10" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div id="dns-srv-fields" class="hidden">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-dark-300 mb-2">Vekt</label>
+                            <input type="number" id="dns-weight" value="0" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-300 mb-2">Port</label>
+                            <input type="number" id="dns-port" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="saveDnsRecord()" id="dns-save-btn" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span id="dns-save-btn-text">Opprett</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forward Modal -->
+    <div id="forward-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass rounded-2xl p-4 sm:p-6 w-full max-w-lg animate-fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg sm:text-xl font-bold text-white">Ny videresending</h3>
+                <button onclick="hideForwardModal()" class="text-dark-400 hover:text-white transition-colors cursor-pointer p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">Host</label>
+                    <input type="text" id="forward-host" placeholder="@ for rot, eller subdomene" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-dark-300 mb-2">URL</label>
+                    <input type="text" id="forward-url" placeholder="https://example.com" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="forward-frame" class="w-5 h-5 rounded bg-dark-800 border-dark-600 text-primary-600 focus:ring-primary-500 cursor-pointer">
+                    <label for="forward-frame" class="text-dark-300 cursor-pointer text-sm">Bruk iframe (ikke anbefalt)</label>
+                </div>
+                <button onclick="createForward()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Opprett
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="glass rounded-xl px-4 sm:px-6 py-4 flex items-center gap-3">
+            <div id="toast-icon"></div>
+            <span id="toast-message" class="text-white font-medium text-sm sm:text-base"></span>
+        </div>
+    </div>
+
+    <script>
+        // CSRF token from server
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        
+        // State
+        let domains = [];
+        let filteredDomains = [];
+        let dnsRecords = [];
+        let filteredDnsRecords = [];
+        let forwards = [];
+        let currentDnsTypeFilter = '';
+        let currentSection = 'domains';
+        let currentDomainTab = 'dns';
+        let selectedDomain = null;
+        
+        // Pagination state
+        let domainPage = 1;
+        let domainsPerPage = 25;
+        
+        // Account state
+        let accounts = [];
+        let activeAccount = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAccounts().then(() => {
+                loadDomains();
+            });
+            
+            // Handle browser back/forward
+            window.addEventListener('popstate', (event) => {
+                if (event.state) {
+                    if (event.state.section === 'domain-detail' && event.state.domainId) {
+                        const domain = domains.find(d => d.id === event.state.domainId);
+                        if (domain) {
+                            showDomainDetail(domain, false);
+                        }
+                    } else if (event.state.section) {
+                        showSection(event.state.section, false);
+                    }
+                } else {
+                    showSection('domains', false);
+                }
+            });
+        });
+        
+        // ==================== ACCOUNT FUNCTIONS ====================
+        
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const data = await response.json();
+                
+                accounts = data.accounts || [];
+                activeAccount = data.active_account;
+                
+                const selector = document.getElementById('account-selector');
+                const select = document.getElementById('active-account');
+                
+                if (accounts.length > 1) {
+                    // Multiple accounts - show selector
+                    selector.classList.remove('hidden');
+                    
+                    select.innerHTML = accounts.map(acc => 
+                        `<option value="${acc}" ${acc === activeAccount ? 'selected' : ''}>${acc}</option>`
+                    ).join('');
+                } else if (accounts.length === 1) {
+                    // Single account - hide selector but store name
+                    activeAccount = accounts[0];
+                    selector.classList.add('hidden');
+                } else {
+                    // No accounts
+                    selector.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load accounts:', error);
+            }
+        }
+        
+        async function switchAccount() {
+            const select = document.getElementById('active-account');
+            const newAccount = select.value;
+            
+            if (!newAccount || newAccount === activeAccount) return;
+            
+            try {
+                const response = await fetch('/api/accounts/select', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ account: newAccount })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    activeAccount = data.active_account;
+                    showToast(`Byttet til konto: ${activeAccount}`);
+                    
+                    // Reload all data with new account
+                    loadDomains();
+                } else {
+                    showToast(data.error || 'Kunne ikke bytte konto', 'error');
+                    // Reset select to previous value
+                    select.value = activeAccount;
+                }
+            } catch (error) {
+                showToast('Feil ved bytte av konto', 'error');
+                select.value = activeAccount;
+            }
+        }
+
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function closeSidebarMobile() {
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // Navigation
+        function navigateTo(section, domainId = null) {
+            if (domainId) {
+                const domain = domains.find(d => d.id === domainId);
+                if (domain) {
+                    history.pushState({ section: 'domain-detail', domainId }, '', `#domain/${domainId}`);
+                    showDomainDetail(domain);
+                }
+            } else {
+                history.pushState({ section }, '', section === 'domains' ? '#' : `#${section}`);
+                showSection(section);
+            }
+        }
+        
+        function showSection(section, updateNav = true) {
+            currentSection = section;
+            selectedDomain = null;
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            
+            if (updateNav) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                    item.classList.add('text-dark-300', 'hover:bg-dark-800/50', 'hover:text-white');
+                });
+                
+                const activeNav = document.getElementById(`nav-${section}`);
+                if (activeNav) {
+                    activeNav.classList.remove('text-dark-300', 'hover:bg-dark-800/50', 'hover:text-white');
+                    activeNav.classList.add('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                }
+            }
+            
+            if (section === 'invoices') loadInvoices();
+        }
+        
+        function showDomainDetail(domain, updateUrl = true) {
+            selectedDomain = domain;
+            currentSection = 'domain-detail';
+            
+            // Hide all sections, show domain detail
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('section-domain-detail').classList.remove('hidden');
+            
+            // Update header
+            document.getElementById('breadcrumb-domain').textContent = domain.domain;
+            document.getElementById('domain-detail-name').textContent = domain.domain;
+            document.getElementById('domain-detail-expiry').textContent = domain.expiry_date ? `Utløper: ${domain.expiry_date}` : '';
+            document.getElementById('stat-domain-id').textContent = domain.id;
+            document.getElementById('stat-registrar').textContent = domain.registrant || 'Domeneshop';
+            
+            const statusEl = document.getElementById('domain-detail-status');
+            statusEl.textContent = domain.status;
+            statusEl.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${domain.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`;
+            
+            // Update nav styling - domains should stay highlighted
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                item.classList.add('text-dark-300', 'hover:bg-dark-800/50', 'hover:text-white');
+            });
+            document.getElementById('nav-domains').classList.remove('text-dark-300', 'hover:bg-dark-800/50', 'hover:text-white');
+            document.getElementById('nav-domains').classList.add('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+            
+            // Load data
+            loadDomainDetail(domain.id);
+            
+            // Show DNS tab by default
+            showDomainTab('dns');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        async function loadDomainDetail(domainId) {
+            // Show loading state in stats
+            document.getElementById('stat-dns-count').innerHTML = '<span class="skeleton inline-block w-8 h-6"></span>';
+            document.getElementById('stat-forwards-count').innerHTML = '<span class="skeleton inline-block w-8 h-6"></span>';
+            
+            // Show skeleton in DNS list
+            const dnsContainer = document.getElementById('dns-list');
+            dnsContainer.innerHTML = Array(3).fill(0).map(() => `
+                <div class="glass rounded-xl p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-12 h-6 skeleton rounded-lg"></div>
+                        <div class="flex-1">
+                            <div class="h-4 w-32 skeleton mb-2"></div>
+                            <div class="h-3 w-48 skeleton"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Show skeleton in forwards list
+            const forwardsContainer = document.getElementById('forwards-list');
+            forwardsContainer.innerHTML = Array(2).fill(0).map(() => `
+                <div class="glass rounded-xl p-3 sm:p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 skeleton rounded-lg"></div>
+                        <div class="flex-1">
+                            <div class="h-4 w-24 skeleton mb-2"></div>
+                            <div class="h-3 w-48 skeleton"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Load DNS and forwards in parallel
+            try {
+                const [dnsResponse, forwardsResponse] = await Promise.all([
+                    fetch(`/api/domains/${domainId}/dns`),
+                    fetch(`/api/domains/${domainId}/forwards`)
+                ]);
+                
+                if (dnsResponse.ok) {
+                    dnsRecords = await dnsResponse.json();
+                    document.getElementById('stat-dns-count').textContent = dnsRecords.length;
+                    currentDnsTypeFilter = '';
+                    filterDnsByType('');
+                } else {
+                    document.getElementById('stat-dns-count').textContent = '0';
+                    dnsRecords = [];
+                    renderDnsRecords();
+                }
+                
+                if (forwardsResponse.ok) {
+                    forwards = await forwardsResponse.json();
+                    document.getElementById('stat-forwards-count').textContent = forwards.length;
+                    renderForwards();
+                } else {
+                    document.getElementById('stat-forwards-count').textContent = '0';
+                    forwards = [];
+                    renderForwards();
+                }
+            } catch (error) {
+                console.error('Failed to load domain details:', error);
+                showToast('Kunne ikke laste domenedetaljer', 'error');
+                document.getElementById('stat-dns-count').textContent = '-';
+                document.getElementById('stat-forwards-count').textContent = '-';
+            }
+        }
+        
+        function showDomainTab(tabName) {
+            currentDomainTab = tabName;
+            
+            // Update tab buttons
+            document.querySelectorAll('.domain-tab').forEach(tab => {
+                if (tab.dataset.tab === tabName) {
+                    tab.classList.add('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                    tab.classList.remove('text-dark-400', 'hover:bg-dark-700');
+                } else {
+                    tab.classList.remove('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                    tab.classList.add('text-dark-400', 'hover:bg-dark-700');
+                }
+            });
+            
+            // Show/hide tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        }
+
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            
+            msg.textContent = message;
+            icon.innerHTML = type === 'success' 
+                ? '<svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                : '<svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        // ==================== DOMAINS ====================
+        async function loadDomains() {
+            const container = document.getElementById('domains-list');
+            
+            // Show skeleton loading
+            container.innerHTML = Array(5).fill(0).map(() => `
+                <div class="glass rounded-xl sm:rounded-2xl p-3 sm:p-5">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl skeleton"></div>
+                        <div class="flex-1">
+                            <div class="h-5 w-48 skeleton mb-2"></div>
+                            <div class="h-3 w-24 skeleton"></div>
+                        </div>
+                        <div class="h-6 w-16 skeleton rounded-full"></div>
+                    </div>
+                </div>
+            `).join('');
+            
+            try {
+                const response = await fetch('/api/domains');
+                if (!response.ok) throw new Error('Failed to load domains');
+                domains = await response.json();
+                filteredDomains = [...domains];
+                domainPage = 1;
+                renderDomains();
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-dark-400">Kunne ikke laste domener</p>
+                        <button onclick="loadDomains()" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white text-sm cursor-pointer">
+                            Prøv igjen
+                        </button>
+                    </div>
+                `;
+                showToast('Kunne ikke laste domener', 'error');
+            }
+        }
+
+        function filterDomains() {
+            const search = document.getElementById('domain-search').value.toLowerCase();
+            filteredDomains = domains.filter(d => d.domain.toLowerCase().includes(search));
+            domainPage = 1;
+            renderDomains();
+        }
+
+        function changeDomainPageSize() {
+            domainsPerPage = parseInt(document.getElementById('domains-per-page').value);
+            domainPage = 1;
+            renderDomains();
+        }
+
+        function goToPage(page) {
+            domainPage = page;
+            renderDomains();
+            // Scroll to top on mobile
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderDomains() {
+            const container = document.getElementById('domains-list');
+            const paginationContainer = document.getElementById('domains-pagination');
+            
+            if (filteredDomains.length === 0) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-6 sm:p-8 text-center">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-dark-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                        <p class="text-dark-400">Ingen domener funnet</p>
+                    </div>
+                `;
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            const totalPages = Math.ceil(filteredDomains.length / domainsPerPage);
+            const start = (domainPage - 1) * domainsPerPage;
+            const end = start + domainsPerPage;
+            const pageItems = filteredDomains.slice(start, end);
+            
+            container.innerHTML = pageItems.map((domain, i) => `
+                <div class="glass rounded-xl sm:rounded-2xl p-3 sm:p-5 animate-fade-in stagger-${(i % 5) + 1} opacity-0 hover:border-primary-500/50 transition-all duration-200 cursor-pointer" onclick="selectDomain(${domain.id})">
+                    <div class="flex items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-700/20 flex items-center justify-center shrink-0">
+                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-semibold text-white text-sm sm:text-lg truncate">${domain.domain}</h3>
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                    <span class="text-dark-500 text-xs">ID: ${domain.id}</span>
+                                    <span class="text-dark-500 text-xs hidden sm:inline">Utløper: ${domain.expiry_date || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-4">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${domain.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">
+                                    ${domain.status}
+                                </span>
+                                <span class="text-dark-500 text-xs sm:hidden">${domain.expiry_date || ''}</span>
+                            </div>
+                            <svg class="w-5 h-5 text-dark-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Pagination
+            if (totalPages > 1) {
+                const isMobile = window.innerWidth < 640;
+                let paginationHtml = `
+                    <div class="text-dark-400 text-xs sm:text-sm text-center sm:text-left">
+                        Viser ${start + 1}-${Math.min(end, filteredDomains.length)} av ${filteredDomains.length}
+                    </div>
+                    <div class="flex items-center justify-center gap-1">
+                `;
+                
+                // Previous button
+                paginationHtml += `
+                    <button onclick="goToPage(${domainPage - 1})" ${domainPage === 1 ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${domainPage === 1 ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                `;
+                
+                // Page numbers - fewer on mobile
+                const maxVisible = isMobile ? 3 : 5;
+                let startPage = Math.max(1, domainPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+                
+                if (startPage > 1 && !isMobile) {
+                    paginationHtml += `<button onclick="goToPage(1)" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">1</button>`;
+                    if (startPage > 2) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `
+                        <button onclick="goToPage(${i})" 
+                            class="px-2.5 sm:px-3 py-1.5 rounded-lg cursor-pointer text-sm ${i === domainPage ? 'bg-primary-600 text-white' : 'text-dark-400 hover:bg-dark-700 hover:text-white'}">
+                            ${i}
+                        </button>
+                    `;
+                }
+                
+                if (endPage < totalPages && !isMobile) {
+                    if (endPage < totalPages - 1) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                    paginationHtml += `<button onclick="goToPage(${totalPages})" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">${totalPages}</button>`;
+                }
+                
+                // Next button
+                paginationHtml += `
+                    <button onclick="goToPage(${domainPage + 1})" ${domainPage === totalPages ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${domainPage === totalPages ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>`;
+                
+                paginationContainer.innerHTML = paginationHtml;
+            } else {
+                paginationContainer.innerHTML = `<div class="text-dark-400 text-xs sm:text-sm w-full text-center">${filteredDomains.length} domener</div>`;
+            }
+        }
+
+        function selectDomain(domainId) {
+            navigateTo('domain-detail', domainId);
+        }
+
+        // ==================== DNS ====================
+
+        function filterDnsByType(type) {
+            currentDnsTypeFilter = type;
+            filteredDnsRecords = type ? dnsRecords.filter(r => r.type === type) : [...dnsRecords];
+            
+            document.querySelectorAll('.dns-type-filter').forEach(btn => {
+                if (btn.dataset.type === type) {
+                    btn.classList.add('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                    btn.classList.remove('text-dark-400', 'hover:bg-dark-700');
+                } else {
+                    btn.classList.remove('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
+                    btn.classList.add('text-dark-400', 'hover:bg-dark-700');
+                }
+            });
+            
+            renderDnsRecords();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderDnsRecords() {
+            const container = document.getElementById('dns-list');
+            
+            if (!selectedDomain) {
+                container.innerHTML = '<p class="text-dark-400 text-sm sm:text-base">Velg et domene for å se DNS-poster</p>';
+                return;
+            }
+            
+            if (filteredDnsRecords.length === 0) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-dark-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                        </svg>
+                        <p class="text-dark-400">${currentDnsTypeFilter ? 'Ingen DNS-poster av denne typen' : 'Ingen DNS-poster funnet'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filteredDnsRecords.map((r, i) => {
+                const isLongData = r.data && r.data.length > 50;
+                const escapedData = escapeHtml(r.data);
+                
+                return `
+                <div class="glass rounded-xl p-3 sm:p-4 animate-fade-in stagger-${(i % 5) + 1} opacity-0 hover:border-primary-500/50 transition-all duration-200 group">
+                    <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+                        <!-- Left side: Type badge and content -->
+                        <div class="flex items-start gap-3 flex-1 min-w-0">
+                            <span class="badge-${r.type} px-2 sm:px-3 py-1 rounded-lg text-xs font-mono font-semibold shrink-0">
+                                ${r.type}
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <!-- Host -->
+                                <div class="font-mono text-white font-medium text-sm sm:text-base">${escapeHtml(r.host)}</div>
+                                
+                                <!-- Data - with proper wrapping for long records -->
+                                <div class="mt-1 ${isLongData ? 'dns-data-long' : ''}">
+                                    <span class="font-mono text-dark-300 text-xs sm:text-sm ${isLongData ? 'block bg-dark-800/50 rounded-lg p-2 mt-1' : ''}" title="${escapedData}">${escapedData}</span>
+                                </div>
+                                
+                                <!-- Meta info -->
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-dark-500">
+                                    <span>TTL: ${r.ttl}s</span>
+                                    ${r.priority !== undefined ? `<span>Pri: ${r.priority}</span>` : ''}
+                                    ${r.weight !== undefined ? `<span>Vekt: ${r.weight}</span>` : ''}
+                                    ${r.port !== undefined ? `<span>Port: ${r.port}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right side: Action buttons -->
+                        <div class="flex items-center gap-1 sm:gap-2 shrink-0 self-end sm:self-start sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button onclick="editDnsRecord(${r.id})" class="p-2 text-dark-400 hover:text-primary-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer active:scale-95" title="Rediger">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteDnsRecord(${selectedDomain.id}, ${r.id})" class="p-2 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer active:scale-95" title="Slett">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function showDnsModal(isEdit = false) {
+            document.getElementById('dns-modal').classList.remove('hidden');
+            document.getElementById('dns-modal').classList.add('flex');
+            document.getElementById('dns-modal-title').textContent = isEdit ? 'Rediger DNS-post' : 'Ny DNS-post';
+            document.getElementById('dns-save-btn-text').textContent = isEdit ? 'Lagre' : 'Opprett';
+            
+            if (!isEdit) {
+                document.getElementById('dns-edit-id').value = '';
+                document.getElementById('dns-type').value = 'A';
+                document.getElementById('dns-host').value = '';
+                document.getElementById('dns-data').value = '';
+                document.getElementById('dns-ttl').value = '3600';
+                document.getElementById('dns-priority').value = '10';
+                document.getElementById('dns-weight').value = '0';
+                document.getElementById('dns-port').value = '';
+                updateDnsFormFields();
+            }
+        }
+
+        function hideDnsModal() {
+            document.getElementById('dns-modal').classList.add('hidden');
+            document.getElementById('dns-modal').classList.remove('flex');
+        }
+
+        function editDnsRecord(recordId) {
+            const record = dnsRecords.find(r => r.id === recordId);
+            if (!record) return;
+            
+            document.getElementById('dns-edit-id').value = recordId;
+            document.getElementById('dns-type').value = record.type;
+            document.getElementById('dns-host').value = record.host;
+            document.getElementById('dns-data').value = record.data;
+            document.getElementById('dns-ttl').value = record.ttl;
+            document.getElementById('dns-priority').value = record.priority || 10;
+            document.getElementById('dns-weight').value = record.weight || 0;
+            document.getElementById('dns-port').value = record.port || '';
+            
+            updateDnsFormFields();
+            showDnsModal(true);
+        }
+
+        function updateDnsFormFields() {
+            const type = document.getElementById('dns-type').value;
+            const priorityField = document.getElementById('dns-priority-field');
+            const srvFields = document.getElementById('dns-srv-fields');
+            
+            if (type === 'MX') {
+                priorityField.classList.remove('hidden');
+                srvFields.classList.add('hidden');
+            } else if (type === 'SRV') {
+                priorityField.classList.remove('hidden');
+                srvFields.classList.remove('hidden');
+            } else {
+                priorityField.classList.add('hidden');
+                srvFields.classList.add('hidden');
+            }
+        }
+
+        async function saveDnsRecord() {
+            if (!selectedDomain) {
+                showToast('Ingen domene valgt', 'error');
+                return;
+            }
+            
+            const domainId = selectedDomain.id;
+            const editId = document.getElementById('dns-edit-id').value;
+            const type = document.getElementById('dns-type').value;
+            const host = document.getElementById('dns-host').value;
+            const data = document.getElementById('dns-data').value.trim();
+            const ttl = parseInt(document.getElementById('dns-ttl').value) || 3600;
+            
+            if (!host || !data) {
+                showToast('Fyll ut alle påkrevde felt', 'error');
+                return;
+            }
+            
+            const record = { type, host, data, ttl };
+            
+            if (type === 'MX' || type === 'SRV') {
+                record.priority = parseInt(document.getElementById('dns-priority').value) || 10;
+            }
+            
+            if (type === 'SRV') {
+                record.weight = parseInt(document.getElementById('dns-weight').value) || 0;
+                record.port = parseInt(document.getElementById('dns-port').value);
+            }
+            
+            try {
+                let response;
+                if (editId) {
+                    response = await fetch(`/api/domains/${domainId}/dns/${editId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                        body: JSON.stringify(record)
+                    });
+                } else {
+                    response = await fetch(`/api/domains/${domainId}/dns`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                        body: JSON.stringify(record)
+                    });
+                }
+                
+                if (!response.ok) throw new Error('Failed to save record');
+                
+                hideDnsModal();
+                loadDomainDetail(domainId);
+                showToast(editId ? 'DNS-post oppdatert' : 'DNS-post opprettet');
+            } catch (error) {
+                showToast('Kunne ikke lagre DNS-post', 'error');
+            }
+        }
+
+        async function deleteDnsRecord(domainId, recordId) {
+            if (!confirm('Er du sikker på at du vil slette denne DNS-posten?')) return;
+            
+            try {
+                const response = await fetch(`/api/domains/${domainId}/dns/${recordId}`, { 
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
+                if (!response.ok) throw new Error('Failed to delete record');
+                
+                loadDomainDetail(domainId);
+                showToast('DNS-post slettet');
+            } catch (error) {
+                showToast('Kunne ikke slette DNS-post', 'error');
+            }
+        }
+
+        // ==================== FORWARDS ====================
+        function renderForwards() {
+            const container = document.getElementById('forwards-list');
+            
+            if (!selectedDomain) {
+                container.innerHTML = '<p class="text-dark-400 text-sm sm:text-base">Velg et domene for å se videresendinger</p>';
+                return;
+            }
+            
+            if (forwards.length === 0) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-dark-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                        <p class="text-dark-400">Ingen videresendinger</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = forwards.map((f, i) => `
+                <div class="glass rounded-xl p-3 sm:p-4 animate-fade-in stagger-${(i % 5) + 1} opacity-0 hover:border-primary-500/50 transition-all duration-200 group">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-mono text-white font-medium text-sm sm:text-base">${escapeHtml(f.host)}</p>
+                            <p class="text-dark-300 text-xs sm:text-sm break-all mt-1">${escapeHtml(f.url)}</p>
+                            ${f.frame ? '<span class="text-xs text-yellow-400 mt-1 inline-block">iframe aktivert</span>' : ''}
+                        </div>
+                        <button onclick="deleteForward(${selectedDomain.id}, '${escapeHtml(f.host)}')" class="p-2 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity active:scale-95" title="Slett">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showForwardModal() {
+            document.getElementById('forward-modal').classList.remove('hidden');
+            document.getElementById('forward-modal').classList.add('flex');
+            document.getElementById('forward-host').value = '';
+            document.getElementById('forward-url').value = '';
+            document.getElementById('forward-frame').checked = false;
+        }
+
+        function hideForwardModal() {
+            document.getElementById('forward-modal').classList.add('hidden');
+            document.getElementById('forward-modal').classList.remove('flex');
+        }
+
+        async function createForward() {
+            if (!selectedDomain) {
+                showToast('Ingen domene valgt', 'error');
+                return;
+            }
+            
+            const domainId = selectedDomain.id;
+            const host = document.getElementById('forward-host').value;
+            const url = document.getElementById('forward-url').value;
+            const frame = document.getElementById('forward-frame').checked;
+            
+            if (!host || !url) {
+                showToast('Fyll ut alle påkrevde felt', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/domains/${domainId}/forwards`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                    body: JSON.stringify({ host, url, frame })
+                });
+                
+                if (!response.ok) throw new Error('Failed to create forward');
+                
+                hideForwardModal();
+                loadDomainDetail(domainId);
+                showToast('Videresending opprettet');
+            } catch (error) {
+                showToast('Kunne ikke opprette videresending', 'error');
+            }
+        }
+
+        async function deleteForward(domainId, host) {
+            if (!confirm('Er du sikker på at du vil slette denne videresendingen?')) return;
+            
+            try {
+                const response = await fetch(`/api/domains/${domainId}/forwards/${encodeURIComponent(host)}`, { 
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
+                if (!response.ok) throw new Error('Failed to delete forward');
+                
+                loadDomainDetail(domainId);
+                showToast('Videresending slettet');
+            } catch (error) {
+                showToast('Kunne ikke slette videresending', 'error');
+            }
+        }
+
+        // ==================== INVOICES ====================
+        async function loadInvoices() {
+            const status = document.getElementById('invoice-filter').value;
+            const container = document.getElementById('invoices-list');
+            
+            // Show skeleton loading
+            container.innerHTML = Array(4).fill(0).map(() => `
+                <div class="glass rounded-xl p-3 sm:p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 skeleton rounded-lg"></div>
+                            <div>
+                                <div class="h-4 w-20 skeleton mb-2"></div>
+                                <div class="h-3 w-32 skeleton"></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="h-4 w-24 skeleton mb-2"></div>
+                            <div class="h-5 w-16 skeleton rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            try {
+                const url = status ? `/api/invoices?status=${status}` : '/api/invoices';
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load invoices');
+                const invoices = await response.json();
+                
+                if (invoices.length === 0) {
+                    container.innerHTML = `
+                        <div class="glass rounded-2xl p-8 text-center">
+                            <svg class="w-12 h-12 mx-auto text-dark-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-dark-400">Ingen fakturaer funnet</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = invoices.map((inv, i) => `
+                    <div class="glass rounded-xl p-3 sm:p-4 animate-fade-in stagger-${(i % 5) + 1} opacity-0">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg ${inv.status === 'paid' || inv.status === 'settled' ? 'bg-green-500/20' : 'bg-yellow-500/20'} flex items-center justify-center shrink-0">
+                                    <svg class="w-5 h-5 ${inv.status === 'paid' || inv.status === 'settled' ? 'text-green-400' : 'text-yellow-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-mono text-white font-medium text-sm sm:text-base">#${inv.id}</p>
+                                    <p class="text-xs sm:text-sm text-dark-400">${inv.type}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-mono text-white font-medium text-sm sm:text-base">${inv.amount} ${inv.currency}</p>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${inv.status === 'paid' || inv.status === 'settled' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">
+                                    ${inv.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-dark-400">Kunne ikke laste fakturaer</p>
+                        <button onclick="loadInvoices()" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white text-sm cursor-pointer">
+                            Prøv igjen
+                        </button>
+                    </div>
+                `;
+                showToast('Kunne ikke laste fakturaer', 'error');
+            }
+        }
+
+        // ==================== DDNS ====================
+        async function updateDdns() {
+            const hostname = document.getElementById('ddns-hostname').value;
+            const ip = document.getElementById('ddns-ip').value;
+            
+            if (!hostname) {
+                showToast('Hostname er påkrevd', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/ddns', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                    body: JSON.stringify({ hostname, ip: ip || undefined })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update DDNS');
+                
+                showToast('DDNS oppdatert');
+            } catch (error) {
+                showToast('Kunne ikke oppdatere DDNS', 'error');
+            }
+        }
+
+        // Handle window resize for pagination
+        window.addEventListener('resize', () => {
+            if (currentSection === 'domains') {
+                renderDomains();
+            }
+        });
+    </script>
+</body>
+</html>

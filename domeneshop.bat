@@ -43,6 +43,7 @@ echo   [36m3)[0m 🔄 HTTP-videresendinger
 echo   [36m4)[0m 📄 Fakturaer
 echo   [36m5)[0m ⚡ Dynamisk DNS (DDNS)
 echo.
+echo   [36m7)[0m 🌍 Web GUI (nettleser)
 echo   [36m8)[0m ⚙️  Innstillinger
 echo   [36m9)[0m 📖 Avansert modus
 echo   [36m0)[0m 🚪 Avslutt
@@ -53,9 +54,15 @@ if "%choice%"=="2" goto menu_dns
 if "%choice%"=="3" goto menu_forwards
 if "%choice%"=="4" goto menu_invoices
 if "%choice%"=="5" goto menu_ddns
+if "%choice%"=="7" goto start_web_gui
 if "%choice%"=="8" goto menu_settings
 if "%choice%"=="9" goto advanced_mode
 if "%choice%"=="0" goto exit_app
+goto main_menu
+
+:start_web_gui
+echo [33m▸ Starter Web GUI på http://localhost:5050[0m
+python domeneshop_gui.py
 goto main_menu
 
 :menu_domains
