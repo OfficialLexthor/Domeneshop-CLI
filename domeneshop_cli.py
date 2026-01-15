@@ -199,7 +199,7 @@ def get_client(account_name: Optional[str] = None) -> DomeneshopClient:
         success, msg = migrate_single_to_multi(name)
         if success:
             click.echo(f"✓ {msg}")
-    
+
     # Bestem hvilken konto å bruke
     effective_account = account_name or _selected_account
     

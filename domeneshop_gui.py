@@ -236,6 +236,9 @@ class DomeneshopClient:
     def delete_dns_record(self, domain_id: int, record_id: int):
         return self._request("DELETE", f"/domains/{domain_id}/dns/{record_id}")
 
+    def get_dns_record(self, domain_id: int, record_id: int):
+        return self._request("GET", f"/domains/{domain_id}/dns/{record_id}")
+
     # Forwards
     def get_forwards(self, domain_id: int):
         return self._request("GET", f"/domains/{domain_id}/forwards/")
@@ -249,10 +252,16 @@ class DomeneshopClient:
     def delete_forward(self, domain_id: int, host: str):
         return self._request("DELETE", f"/domains/{domain_id}/forwards/{host}")
 
+    def get_forward(self, domain_id: int, host: str):
+        return self._request("GET", f"/domains/{domain_id}/forwards/{host}")
+
     # Invoices
     def get_invoices(self, status=None):
         params = {"status": status} if status else None
         return self._request("GET", "/invoices", params=params)
+
+    def get_invoice(self, invoice_id: int):
+        return self._request("GET", f"/invoices/{invoice_id}")
 
     # DDNS
     def update_ddns(self, hostname: str, myip=None):
@@ -445,7 +454,7 @@ def api_accounts_list():
 def api_accounts_select():
     """Velg aktiv konto for session"""
     data = request.json or {}
-    account_name = data.get("account")
+    account_name = data.get("name") or data.get("account")
     
     if not account_name:
         return jsonify({"success": False, "error": "Kontonavn påkrevd"}), 400
@@ -585,6 +594,58 @@ def api_accounts_rename(old_name):
         return jsonify({"success": False, "error": message}), 400
 
 
+@app.route("/api/accounts/<name>/update", methods=["POST"])
+@rate_limit(max_requests=5, window_seconds=60)
+@csrf_protect
+def api_accounts_update(name):
+    """Oppdater credentials for en konto"""
+    data = request.json or {}
+    token = data.get("token", "").strip()
+    secret = data.get("secret", "").strip()
+    prefer_keychain = data.get("prefer_keychain", True)
+    
+    ip = get_client_ip()
+    
+    if name not in list_accounts():
+        return jsonify({"success": False, "error": f"Konto '{name}' finnes ikke"}), 404
+    
+    if not token or not secret:
+        log_invalid_input("token/secret", "missing", ip)
+        return jsonify({"success": False, "error": "Token og secret er påkrevd"}), 400
+    
+    if not validate_token_format(token):
+        log_invalid_input("token", "invalid format", ip)
+        return jsonify({"success": False, "error": "Ugyldig token-format"}), 400
+    
+    if not validate_secret_format(secret):
+        log_invalid_input("secret", "invalid format", ip)
+        return jsonify({"success": False, "error": "Ugyldig secret-format"}), 400
+    
+    # Test new credentials
+    try:
+        client = DomeneshopClient(token, secret)
+        domains = client.get_domains()
+        domain_count = len(domains) if domains else 0
+    except Exception as e:
+        log_auth_failure(str(e), ip, get_user_agent())
+        return jsonify({"success": False, "error": f"Autentisering feilet: {e}"}), 401
+    
+    # Oppdater konto (slett og lagre på nytt)
+    delete_account(name)
+    success, storage_type = save_account(name, token, secret, prefer_keychain)
+    
+    if success:
+        log_auth_success(ip, get_user_agent())
+        return jsonify({
+            "success": True,
+            "storage_type": storage_type,
+            "domain_count": domain_count,
+            "message": f"Credentials oppdatert for '{name}'"
+        })
+    else:
+        return jsonify({"success": False, "error": "Kunne ikke oppdatere credentials"}), 500
+
+
 @app.route("/api/accounts/<name>/test")
 def api_accounts_test(name):
     """Test tilkobling for en konto"""
@@ -694,6 +755,19 @@ def api_dns_delete(domain_id, record_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/domains/<int:domain_id>/dns/<int:record_id>")
+def api_dns_get(domain_id, record_id):
+    """Hent spesifikk DNS-post"""
+    client = get_client()
+    if not client:
+        return jsonify({"error": "Ikke autentisert"}), 401
+    try:
+        record = client.get_dns_record(domain_id, record_id)
+        return jsonify(record)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/domains/<int:domain_id>/forwards")
 def api_forwards_list(domain_id):
     """Hent videresendinger"""
@@ -738,6 +812,35 @@ def api_forwards_delete(domain_id, host):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/domains/<int:domain_id>/forwards/<host>")
+def api_forwards_get(domain_id, host):
+    """Hent spesifikk videresending"""
+    client = get_client()
+    if not client:
+        return jsonify({"error": "Ikke autentisert"}), 401
+    try:
+        forward = client.get_forward(domain_id, host)
+        return jsonify(forward)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/domains/<int:domain_id>/forwards/<host>", methods=["PUT"])
+@csrf_protect
+def api_forwards_update(domain_id, host):
+    """Oppdater videresending"""
+    client = get_client()
+    if not client:
+        return jsonify({"error": "Ikke autentisert"}), 401
+    try:
+        data = request.json
+        client.update_forward(domain_id, host, data)
+        log_forward_change("update", domain_id, host, get_client_ip())
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/invoices")
 def api_invoices():
     """Hent fakturaer"""
@@ -748,6 +851,19 @@ def api_invoices():
         status = request.args.get("status")
         invoices = client.get_invoices(status)
         return jsonify(invoices)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/invoices/<int:invoice_id>")
+def api_invoice_get(invoice_id):
+    """Hent spesifikk faktura"""
+    client = get_client()
+    if not client:
+        return jsonify({"error": "Ikke autentisert"}), 401
+    try:
+        invoice = client.get_invoice(invoice_id)
+        return jsonify(invoice)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

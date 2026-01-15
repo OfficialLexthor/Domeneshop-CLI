@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://api.domeneshop.no/static/domeneshop-logo.svg" alt="Domeneshop" width="180" />
+<img src="https://domene.shop/svg/logo-no.svg" alt="Domeneshop" width="180" />
 
 # Domeneshop CLI & Web GUI
 

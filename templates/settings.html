@@ -102,6 +102,48 @@
                 </div>
             </div>
 
+            <!-- Edit Account Form -->
+            <div id="edit-account-form" class="glass rounded-2xl p-6 mb-6 animate-fade-in hidden" style="opacity: 0;">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white">Rediger konto</h2>
+                    <button onclick="hideEditAccountForm()" class="p-1 text-dark-400 hover:text-white transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <input type="hidden" id="edit-original-name">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">Kontonavn</label>
+                        <input type="text" id="edit-account-name" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Token</label>
+                        <input type="text" id="edit-token" placeholder="La stå tom for å beholde eksisterende" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                        <p class="text-xs text-dark-500 mt-1">La feltene stå tomme for å beholde eksisterende credentials</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-dark-300 mb-2">API Secret</label>
+                        <input type="password" id="edit-secret" placeholder="La stå tom for å beholde eksisterende" class="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono">
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button onclick="saveEditedAccount()" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-all duration-200 cursor-pointer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Lagre endringer
+                        </button>
+                        <button onclick="hideEditAccountForm()" class="px-4 py-3 bg-dark-700 hover:bg-dark-600 rounded-xl text-dark-300 font-medium transition-all duration-200 cursor-pointer">
+                            Avbryt
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Add Account Form -->
             <div id="add-account-form" class="glass rounded-2xl p-6 mb-6 animate-fade-in hidden" style="opacity: 0;">
                 <div class="flex items-center justify-between mb-4">
@@ -311,7 +353,7 @@
                     
                     // Render accounts
                     accountsList.innerHTML = accounts.map(acc => `
-                        <div class="flex items-center justify-between p-3 bg-dark-800/50 rounded-xl group">
+                        <div class="flex items-center justify-between p-3 bg-dark-800/50 rounded-xl group hover:bg-dark-700/50 transition-colors">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-primary-600/20 flex items-center justify-center">
                                     <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,13 +362,21 @@
                                 </div>
                                 <span class="font-medium text-white">${acc}</span>
                             </div>
-                            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="testAccount('${acc}')" class="p-1.5 text-dark-400 hover:text-green-400 transition-colors cursor-pointer" title="Test tilkobling">
+                            <div class="flex items-center gap-1">
+                                <button onclick="selectAccount('${acc}')" class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded-lg text-white text-sm font-medium transition-colors cursor-pointer">
+                                    Velg
+                                </button>
+                                <button onclick="editAccount('${acc}')" class="p-2 text-dark-400 hover:text-primary-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer" title="Rediger">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+                                <button onclick="testAccount('${acc}')" class="p-2 text-dark-400 hover:text-green-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer" title="Test tilkobling">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                 </button>
-                                <button onclick="deleteAccount('${acc}')" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors cursor-pointer" title="Slett">
+                                <button onclick="deleteAccount('${acc}')" class="p-2 text-dark-400 hover:text-red-400 hover:bg-dark-700 rounded-lg transition-colors cursor-pointer" title="Slett">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
@@ -350,6 +400,7 @@
         }
         
         function showAddAccountForm() {
+            hideEditAccountForm();
             document.getElementById('add-account-form').classList.remove('hidden');
             document.getElementById('add-account-form').style.opacity = '1';
             document.getElementById('account-name').focus();
@@ -360,6 +411,83 @@
             document.getElementById('account-name').value = '';
             document.getElementById('new-token').value = '';
             document.getElementById('new-secret').value = '';
+        }
+        
+        function editAccount(name) {
+            hideAddAccountForm();
+            document.getElementById('edit-original-name').value = name;
+            document.getElementById('edit-account-name').value = name;
+            document.getElementById('edit-token').value = '';
+            document.getElementById('edit-secret').value = '';
+            document.getElementById('edit-account-form').classList.remove('hidden');
+            document.getElementById('edit-account-form').style.opacity = '1';
+            document.getElementById('edit-account-name').focus();
+        }
+        
+        function hideEditAccountForm() {
+            document.getElementById('edit-account-form').classList.add('hidden');
+            document.getElementById('edit-original-name').value = '';
+            document.getElementById('edit-account-name').value = '';
+            document.getElementById('edit-token').value = '';
+            document.getElementById('edit-secret').value = '';
+        }
+        
+        async function saveEditedAccount() {
+            const originalName = document.getElementById('edit-original-name').value;
+            const newName = document.getElementById('edit-account-name').value.trim();
+            const token = document.getElementById('edit-token').value.trim();
+            const secret = document.getElementById('edit-secret').value.trim();
+            
+            if (!newName) {
+                showToast('Kontonavn kan ikke være tomt', 'error');
+                return;
+            }
+            
+            try {
+                // Hvis navn er endret, rename først
+                if (newName !== originalName) {
+                    const renameResponse = await fetch(`/api/accounts/${encodeURIComponent(originalName)}/rename`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({ new_name: newName })
+                    });
+                    
+                    if (!renameResponse.ok) {
+                        const data = await renameResponse.json();
+                        showToast(data.error || 'Kunne ikke endre navn', 'error');
+                        return;
+                    }
+                }
+                
+                // Hvis token/secret er oppgitt, oppdater credentials
+                if (token && secret) {
+                    const updateResponse = await fetch(`/api/accounts/${encodeURIComponent(newName)}/update`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({ token, secret })
+                    });
+                    
+                    const data = await updateResponse.json();
+                    
+                    if (!updateResponse.ok) {
+                        showToast(data.error || 'Kunne ikke oppdatere credentials', 'error');
+                        return;
+                    }
+                }
+                
+                showToast(`Konto '${newName}' oppdatert`);
+                hideEditAccountForm();
+                loadAccounts();
+                
+            } catch (error) {
+                showToast('Kunne ikke oppdatere konto', 'error');
+            }
         }
         
         async function addAccount() {
@@ -444,6 +572,32 @@
                 }
             } catch (error) {
                 showToast('Kunne ikke slette konto', 'error');
+            }
+        }
+        
+        async function selectAccount(name) {
+            try {
+                const response = await fetch('/api/accounts/select', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Byttet til konto '${name}'`);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 500);
+                } else {
+                    showToast(data.error || 'Kunne ikke velge konto', 'error');
+                }
+            } catch (error) {
+                showToast('Kunne ikke velge konto', 'error');
             }
         }
 
