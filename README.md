@@ -1,52 +1,93 @@
 <div align="center">
 
-# Domeneshop CLI
+<img src="https://api.domeneshop.no/static/domeneshop-logo.svg" alt="Domeneshop" width="180" />
+
+# Domeneshop CLI & Web GUI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)]()
 
-Et kraftig kommandolinjeverktøy for [Domeneshop API](https://api.domeneshop.no/docs/).
+**Kraftig CLI og Web GUI for administrasjon av domener, DNS og videresendinger via [Domeneshop API](https://api.domeneshop.no/docs/)**
 
-[Funksjoner](#funksjoner) • [Hurtigstart](#hurtigstart) • [Installasjon](#installasjon) • [Dokumentasjon](#bruk) • [Bidra](#bidra)
+[Funksjoner](#-funksjoner) · [Hurtigstart](#-hurtigstart) · [CLI-bruk](#-cli-bruk) · [Web GUI](#-web-gui) · [Sikkerhet](#-sikkerhet)
 
 </div>
 
 ---
 
-## Funksjoner
-
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| 📋 **Domener** | List og vis domenedetaljer |
-| 🌐 **DNS** | Administrer DNS-poster (A, AAAA, CNAME, MX, TXT, SRV) |
-| 🔄 **Forwards** | Administrer HTTP-videresendinger |
-| 📄 **Fakturaer** | List og vis fakturaer |
-| ⚡ **DDNS** | Oppdater dynamisk DNS |
-
-## Hurtigstart
+## ✨ Funksjoner
 
 <table>
 <tr>
-<td width="33%">
+<td width="50%">
 
-### macOS
+### CLI (Kommandolinje)
+
+- **Domener** — List og vis detaljer
+- **DNS** — Full CRUD for alle posttyper
+- **Forwards** — HTTP-videresendinger
+- **Fakturaer** — Oversikt og status
+- **DDNS** — Dynamisk DNS-oppdatering
+- **Multi-konto** — Bytt mellom kontoer
+
+</td>
+<td width="50%">
+
+### Web GUI
+
+- **Visuell administrasjon** — Domener, DNS, forwards
+- **Domenedetaljer** — Fane-basert navigasjon
+- **Inline-redigering** — Rediger direkte i tabeller
+- **Responsivt design** — Mobil og desktop
+- **Multi-konto** — Bytt konto i innstillinger
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Hurtigstart
+
+### Krav
+
+- Python 3.9+
+- API-token fra [Domeneshop](https://www.domeneshop.no/admin?view=api)
+
+### Installasjon
+
+```bash
+git clone https://github.com/OfficialLexthor/Domeneshop-CLI.git
+cd Domeneshop-CLI
+pip install -r requirements.txt
+```
+
+### Start
+
+<table>
+<tr>
+<td><strong>macOS</strong></td>
+<td><strong>Linux</strong></td>
+<td><strong>Windows</strong></td>
+</tr>
+<tr>
+<td>
+
 ```bash
 ./domeneshop.command
 ```
 
 </td>
-<td width="33%">
+<td>
 
-### Linux
 ```bash
 ./domeneshop.sh
 ```
 
 </td>
-<td width="33%">
+<td>
 
-### Windows
 ```batch
 domeneshop.bat
 ```
@@ -55,142 +96,69 @@ domeneshop.bat
 </tr>
 </table>
 
-> **Note**
-> Første gang opprettes virtuelt miljø og avhengigheter installeres automatisk.
+Første gang opprettes virtuelt miljø og avhengigheter installeres automatisk.
 
-### Interaktivt menysystem
+---
 
-Når du starter programmet får du en brukervennlig meny:
+## 📟 CLI-bruk
 
-```
- ____                                       _                    ____ _     ___
-|  _ \  ___  _ __ ___   ___ _ __   ___  ___| |__   ___  _ __    / ___| |   |_ _|
-| | | |/ _ \| '_ ` _ \ / _ \ '_ \ / _ \/ __| '_ \ / _ \| '_ \  | |   | |    | |
-| |_| | (_) | | | | | |  __/ | | |  __/\__ \ | | | (_) | |_) | | |___| |___ | |
-|____/ \___/|_| |_| |_|\___|_| |_|\___||___/_| |_|\___/| .__/   \____|_____|___|
-                                                       |_|
-
-HOVEDMENY
-
-  1) 📋 Domener
-  2) 🌐 DNS
-  3) 🔄 HTTP-videresendinger
-  4) 📄 Fakturaer
-  5) ⚡ Dynamisk DNS (DDNS)
-
-  8) ⚙️  Innstillinger
-  9) 📖 Avansert modus
-  0) 🚪 Avslutt
-```
-
-<details>
-<summary><strong>Vis alle menyvalg</strong></summary>
-
-| Meny | Funksjoner |
-|------|------------|
-| **Domener** | Liste og vise domenedetaljer |
-| **DNS** | Liste, legge til, oppdatere og slette DNS-poster (med TTL-støtte) |
-| **HTTP-videresendinger** | Administrere videresendinger |
-| **Fakturaer** | Se alle eller kun ubetalte fakturaer |
-| **DDNS** | Oppdatere dynamisk DNS |
-| **Innstillinger** | Konfigurere API-credentials |
-| **Avansert modus** | Skrive kommandoer direkte |
-
-</details>
-
-## Installasjon
-
-### Via pip (anbefalt)
+### Konfigurer credentials
 
 ```bash
-git clone https://github.com/OfficialLexthor/Domeneshop-CLI.git
-cd Domeneshop-CLI
-pip install -e .
-```
-
-### Manuelt
-
-```bash
-git clone https://github.com/OfficialLexthor/Domeneshop-CLI.git
-cd Domeneshop-CLI
-pip install -r requirements.txt
-```
-
-## Oppsett
-
-### 1. Hent API-credentials
-
-1. Logg inn på [Domeneshop](https://www.domeneshop.no)
-2. Gå til [API-administrasjon](https://www.domeneshop.no/admin?view=api)
-3. Generer et nytt API-token
-
-### 2. Konfigurer CLI
-
-<details open>
-<summary><strong>Alternativ 1: System Keychain (anbefalt for desktop)</strong></summary>
-
-```bash
+# Interaktiv konfigurasjon (lagres i system keychain)
 domeneshop configure
-# Følg instruksjonene for å lagre credentials i system keychain
+
+# Sjekk status
+domeneshop configure --status
+
+# Migrer fra fil til keychain
+domeneshop configure --migrate-to-keychain
 ```
 
-Credentials lagres kryptert via:
-- macOS: Keychain Access
-- Windows: Credential Locker
-- Linux: Secret Service (GNOME Keyring/KWallet)
-
-</details>
-
 <details>
-<summary><strong>Alternativ 2: Miljøvariabler (anbefalt for CI/CD)</strong></summary>
+<summary><strong>Alternativ: Miljøvariabler</strong></summary>
 
 ```bash
 export DOMENESHOP_TOKEN='din-token'
 export DOMENESHOP_SECRET='din-hemmelighet'
 ```
 
-Legg i `~/.bashrc` eller `~/.zshrc` for permanent konfigurasjon.
-
 </details>
 
-<details>
-<summary><strong>Alternativ 3: Fil-basert (fallback)</strong></summary>
-
-Hvis keychain ikke er tilgjengelig, lagres credentials i `~/.domeneshop-credentials` med sikre filrettigheter (600).
-
-</details>
-
-<details>
-<summary><strong>Migrer eksisterende credentials til keychain</strong></summary>
+### Multi-konto
 
 ```bash
-domeneshop configure --migrate-to-keychain
+# List alle kontoer
+domeneshop accounts list
+
+# Legg til konto
+domeneshop accounts add "Firma" --token xxx --secret yyy
+
+# Bruk spesifikk konto
+domeneshop --account "Firma" domains list
+
+# Test tilkobling
+domeneshop accounts test "Firma"
 ```
-
-</details>
-
-## Bruk
 
 ### Domener
 
 ```bash
-domeneshop domains list              # List alle domener
-domeneshop domains list --filter .no # Filtrer domener
-domeneshop domains show 12345        # Vis domenedetaljer
-domeneshop domains list --json       # JSON-output
+domeneshop domains list                # List alle domener
+domeneshop domains list --filter .no   # Filtrer på TLD
+domeneshop domains show 12345          # Vis detaljer
+domeneshop domains list --json         # JSON-output
 ```
 
 ### DNS
 
 ```bash
-# List og vis
-domeneshop dns list 12345                    # List alle poster
-domeneshop dns list 12345 --type A           # Filtrer på type
-domeneshop dns show 12345 67890              # Vis spesifikk post
+# List poster
+domeneshop dns list 12345
+domeneshop dns list 12345 --type A
 
 # Opprett poster
 domeneshop dns add 12345 --type A --host www --data 192.168.1.1
-domeneshop dns add 12345 --type CNAME --host blog --data www.example.com
 domeneshop dns add 12345 --type MX --host @ --data mx.example.com --priority 10
 domeneshop dns add 12345 --type TXT --host @ --data "v=spf1 include:_spf.domeneshop.no ~all"
 
@@ -202,9 +170,8 @@ domeneshop dns delete 12345 67890 --yes
 ### HTTP-videresendinger
 
 ```bash
-domeneshop forwards list 12345                              # List alle
+domeneshop forwards list 12345
 domeneshop forwards add 12345 --host www --url https://example.com
-domeneshop forwards update 12345 www --url https://ny-url.com
 domeneshop forwards delete 12345 www
 ```
 
@@ -213,111 +180,133 @@ domeneshop forwards delete 12345 www
 ```bash
 domeneshop invoices list                 # Alle fakturaer
 domeneshop invoices list --status unpaid # Kun ubetalte
-domeneshop invoices show 12345           # Vis detaljer
 ```
 
-### Dynamisk DNS (DDNS)
+### Dynamisk DNS
 
 ```bash
-domeneshop ddns www.example.com                    # Bruk din IP
-domeneshop ddns www.example.com --ip 192.168.1.1   # Spesifikk IP
-domeneshop ddns "example.com,www.example.com"      # Flere hostnames
+domeneshop ddns www.example.com                  # Bruk din IP
+domeneshop ddns www.example.com --ip 192.168.1.1 # Spesifikk IP
 ```
 
-## Avanserte eksempler
+---
 
-<details>
-<summary><strong>Finn domain-ID fra domenenavn</strong></summary>
+## 🌐 Web GUI
 
-```bash
-domeneshop domains list --json | jq '.[] | select(.domain=="example.no") | .id'
-```
-
-</details>
-
-<details>
-<summary><strong>Backup av DNS-poster</strong></summary>
-
-```bash
-domeneshop dns list 12345 --json > dns-backup.json
-```
-
-</details>
-
-<details>
-<summary><strong>Batch-sletting av TXT-poster</strong></summary>
-
-```bash
-domeneshop dns list 12345 --type TXT --json | \
-    jq '.[].id' | \
-    xargs -I {} domeneshop dns delete 12345 {} --yes
-```
-
-</details>
-
-## Web GUI
-
-Domeneshop Manager inkluderer også et web-basert grensesnitt:
+Start web-grensesnittet:
 
 ```bash
 python domeneshop_gui.py
-# Åpne http://localhost:5050 i nettleseren
 ```
 
-GUI-et tilbyr:
-- Visuell administrasjon av domener og DNS
-- Paginering og søk
-- Responsivt design (mobil/desktop)
-- CSRF-beskyttelse og rate limiting
+Åpne **http://localhost:5050** i nettleseren.
 
-## Sikkerhet
-
-Prosjektet implementerer flere sikkerhetslag:
+### Funksjoner
 
 | Funksjon | Beskrivelse |
 |----------|-------------|
-| **Keychain-integrasjon** | Kryptert lagring via OS keychain |
-| **CSRF-beskyttelse** | Token-validering for alle modifiserende operasjoner |
-| **Rate limiting** | Brute-force beskyttelse på auth-endepunkter |
+| **Domeneoversikt** | Paginert liste med søk og filtrering |
+| **Domenedetaljer** | Statistikk, DNS og forwards i faner |
+| **Inline-redigering** | Hover for rediger/slett-knapper |
+| **Multi-konto** | Bytt mellom kontoer i innstillinger |
+| **Responsivt** | Optimalisert for mobil og desktop |
+
+<details>
+<summary><strong>Skjermbilder</strong></summary>
+
+Web GUI inkluderer:
+- Sidebar-navigasjon med domeneliste
+- Domenedetalj-side med faner (Oversikt, DNS, Videresendinger)
+- Skeleton loading states
+- Breadcrumb-navigasjon
+
+</details>
+
+---
+
+## 🔒 Sikkerhet
+
+| Funksjon | Beskrivelse |
+|----------|-------------|
+| **Keychain** | Kryptert lagring via OS keychain (macOS/Windows/Linux) |
+| **CSRF** | Token-validering for alle modifiserende operasjoner |
+| **Rate limiting** | Beskyttelse mot brute-force på auth-endepunkter |
 | **Audit logging** | Logger sikkerhetshendelser til `~/.domeneshop-audit.log` |
-| **Sikre sessions** | HttpOnly, SameSite cookies |
+| **Sikre sessions** | HttpOnly, SameSite, Secure cookies |
 
-Se [SECURITY.md](SECURITY.md) for fullstendig sikkerhetsdokumentasjon.
+Se [SECURITY.md](SECURITY.md) for fullstendig dokumentasjon.
 
-## Feilsøking
+### Credential-prioritet
+
+1. **System keychain** (anbefalt for desktop)
+2. **Miljøvariabler** (anbefalt for CI/CD)
+3. **Fil-basert** (`~/.domeneshop-credentials` med 600-rettigheter)
+
+---
+
+## 🛠 Feilsøking
 
 | Problem | Løsning |
 |---------|---------|
-| Autentisering feilet | Kjør `domeneshop configure` |
+| Autentisering feilet | `domeneshop configure` |
+| Mangler credentials | `domeneshop configure --status` |
+| Keychain utilgjengelig | `pip install keyring` |
 | API-feil | Bruk `--json` for detaljert feilmelding |
-| Mangler credentials | Sjekk `domeneshop configure --status` |
-| Keychain utilgjengelig | Installer `pip install keyring` |
 
-## Ansvarsfraskrivelse
+---
 
-> **Warning**
+## 📁 Prosjektstruktur
+
+```
+domeneshop-cli/
+├── domeneshop_cli.py      # CLI-applikasjon
+├── domeneshop_gui.py      # Flask Web GUI
+├── credentials.py         # Credential-håndtering
+├── audit.py               # Audit logging
+├── templates/
+│   ├── index.html         # Hoved-UI
+│   └── settings.html      # Innstillinger
+├── domeneshop.sh          # Linux/macOS launcher
+├── domeneshop.command     # macOS launcher
+└── domeneshop.bat         # Windows launcher
+```
+
+---
+
+## 🤝 Bidra
+
+Bidrag er velkomne! Se [CONTRIBUTING.md](CONTRIBUTING.md) for retningslinjer.
+
+```bash
+# Fork og klon
+git clone https://github.com/YOUR_USERNAME/Domeneshop-CLI.git
+
+# Opprett feature branch
+git checkout -b feature/ny-funksjon
+
+# Commit og push
+git commit -m 'Legg til ny funksjon'
+git push origin feature/ny-funksjon
+```
+
+---
+
+## ⚠️ Ansvarsfraskrivelse
+
 > Dette er et **uoffisielt** prosjekt og er ikke tilknyttet Domeneshop AS.
 > Prosjektet bruker [Domeneshop sitt offentlige API](https://api.domeneshop.no/docs/).
 
-## Bidra
+---
 
-Bidrag er velkomne! Se [CONTRIBUTING](CONTRIBUTING.md) for retningslinjer.
+## 📄 Lisens
 
-1. Fork prosjektet
-2. Opprett en feature branch (`git checkout -b feature/ny-funksjon`)
-3. Commit endringene (`git commit -m 'Legg til ny funksjon'`)
-4. Push til branchen (`git push origin feature/ny-funksjon`)
-5. Åpne en Pull Request
-
-## Lisens
-
-Distribuert under MIT-lisensen. Se [`LICENSE`](LICENSE) for mer informasjon.
+Distribuert under MIT-lisensen. Se [LICENSE](LICENSE) for mer informasjon.
 
 ---
 
 <div align="center">
 
-**[Domeneshop API-dokumentasjon](https://api.domeneshop.no/docs/)** • **[Domeneshop](https://www.domeneshop.no)**
+**[Domeneshop API-dokumentasjon](https://api.domeneshop.no/docs/)** · **[Domeneshop](https://www.domeneshop.no)**
 
 Utviklet av [Martin Clausen](https://github.com/OfficialLexthor)
 
