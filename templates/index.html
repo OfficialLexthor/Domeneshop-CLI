@@ -117,6 +117,33 @@
                 transform: translateX(-100%);
             }
         }
+
+        /* Respect reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            .animate-fade-in,
+            .animate-slide-in {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+            .skeleton {
+                animation: none !important;
+            }
+            * {
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus visible for accessibility */
+        :focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        button:focus:not(:focus-visible),
+        a:focus:not(:focus-visible) {
+            outline: none;
+        }
     </style>
 </head>
 <body class="bg-dark-950 text-dark-100 font-sans min-h-screen">
@@ -133,7 +160,7 @@
 
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-dark-900/95 lg:bg-dark-900/50 border-r border-dark-700/50 flex flex-col fixed h-full z-50 transition-transform duration-300 lg:translate-x-0 -translate-x-full">
+        <aside id="sidebar" class="w-64 bg-dark-900/95 lg:bg-dark-900/50 backdrop-blur-xl border-r border-dark-700/50 lg:border lg:rounded-2xl flex flex-col fixed h-full lg:h-[calc(100vh-2rem)] lg:top-4 lg:left-4 z-50 transition-transform duration-300 lg:translate-x-0 -translate-x-full">
             <div class="p-4 lg:p-6 border-b border-dark-700/50">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -200,7 +227,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8">
+        <main class="flex-1 lg:ml-72 p-4 sm:p-6 lg:p-8 lg:pt-6">
             <!-- Mobile header -->
             <div class="lg:hidden flex items-center justify-between mb-4">
                 <button onclick="toggleSidebar()" class="p-2 text-dark-400 hover:text-white glass rounded-lg">
@@ -339,6 +366,14 @@
                 <!-- Tabs -->
                 <div class="mb-6">
                     <div class="flex gap-1 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" id="domain-tabs">
+                        <button onclick="showDomainTab('overview')" data-tab="overview" class="domain-tab px-4 py-2.5 rounded-xl text-sm font-medium text-dark-400 hover:bg-dark-700 cursor-pointer whitespace-nowrap shrink-0 transition-all active:scale-95">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Oversikt
+                            </span>
+                        </button>
                         <button onclick="showDomainTab('dns')" data-tab="dns" class="domain-tab px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-600/20 text-primary-400 border border-primary-500/30 cursor-pointer whitespace-nowrap shrink-0 transition-all active:scale-95">
                             <span class="flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,6 +390,65 @@
                                 Videresendinger
                             </span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Overview Tab Content -->
+                <div id="tab-overview" class="tab-content hidden">
+                    <div class="grid gap-6 sm:grid-cols-2">
+                        <!-- Domeneinfo -->
+                        <div class="glass rounded-xl p-4 sm:p-5">
+                            <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wide mb-4">Domeneinfo</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Registreringsdato</span>
+                                    <span id="info-registered-date" class="text-white font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Utløpsdato</span>
+                                    <span id="info-expiry-date" class="text-white font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Automatisk fornyelse</span>
+                                    <span id="info-renew" class="px-2 py-0.5 rounded-full text-xs font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Innehaver</span>
+                                    <span id="info-registrant" class="text-white font-medium text-right max-w-[60%] truncate">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tjenester -->
+                        <div class="glass rounded-xl p-4 sm:p-5">
+                            <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wide mb-4">Tjenester</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Registrar</span>
+                                    <span id="info-service-registrar" class="px-2 py-0.5 rounded-full text-xs font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">DNS</span>
+                                    <span id="info-service-dns" class="px-2 py-0.5 rounded-full text-xs font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">E-post</span>
+                                    <span id="info-service-email" class="px-2 py-0.5 rounded-full text-xs font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-dark-400 text-sm">Webhotell</span>
+                                    <span id="info-service-webhotel" class="text-white font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navnetjenere -->
+                        <div class="glass rounded-xl p-4 sm:p-5 sm:col-span-2">
+                            <h3 class="text-sm font-semibold text-dark-400 uppercase tracking-wide mb-4">Navnetjenere</h3>
+                            <div id="info-nameservers" class="flex flex-wrap gap-2">
+                                <!-- Nameservers will be populated by JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -743,6 +837,53 @@
             statusEl.textContent = domain.status;
             statusEl.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${domain.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`;
             
+            // Populate overview tab
+            document.getElementById('info-registered-date').textContent = formatDate(domain.registered_date);
+            document.getElementById('info-expiry-date').textContent = formatDate(domain.expiry_date);
+            document.getElementById('info-registrant').textContent = domain.registrant || '-';
+            
+            // Renew badge
+            const renewEl = document.getElementById('info-renew');
+            if (domain.renew === true) {
+                renewEl.textContent = 'Ja';
+                renewEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400';
+            } else if (domain.renew === false) {
+                renewEl.textContent = 'Nei';
+                renewEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400';
+            } else {
+                renewEl.textContent = '-';
+                renewEl.className = 'px-2 py-0.5 rounded-full text-xs font-medium text-dark-400';
+            }
+            
+            // Services
+            const services = domain.services || {};
+            
+            const registrarEl = document.getElementById('info-service-registrar');
+            registrarEl.textContent = services.registrar ? 'Domeneshop' : 'Ekstern';
+            registrarEl.className = `px-2 py-0.5 rounded-full text-xs font-medium ${services.registrar ? 'bg-green-500/20 text-green-400' : 'bg-dark-600 text-dark-300'}`;
+            
+            const dnsEl = document.getElementById('info-service-dns');
+            dnsEl.textContent = services.dns ? 'Aktiv' : 'Inaktiv';
+            dnsEl.className = `px-2 py-0.5 rounded-full text-xs font-medium ${services.dns ? 'bg-green-500/20 text-green-400' : 'bg-dark-600 text-dark-300'}`;
+            
+            const emailEl = document.getElementById('info-service-email');
+            emailEl.textContent = services.email ? 'Aktiv' : 'Inaktiv';
+            emailEl.className = `px-2 py-0.5 rounded-full text-xs font-medium ${services.email ? 'bg-green-500/20 text-green-400' : 'bg-dark-600 text-dark-300'}`;
+            
+            const webhotelEl = document.getElementById('info-service-webhotel');
+            const webhotelLabels = { none: 'Ingen', websmall: 'Small', webmedium: 'Medium', weblarge: 'Large', webxlarge: 'X-Large' };
+            webhotelEl.textContent = webhotelLabels[services.webhotel] || services.webhotel || 'Ingen';
+            
+            // Nameservers
+            const nsContainer = document.getElementById('info-nameservers');
+            if (domain.nameservers && domain.nameservers.length > 0) {
+                nsContainer.innerHTML = domain.nameservers.map(ns => `
+                    <span class="px-3 py-1.5 bg-dark-700 rounded-lg text-sm font-mono text-dark-200">${escapeHtml(ns)}</span>
+                `).join('');
+            } else {
+                nsContainer.innerHTML = '<span class="text-dark-500">Ingen navnetjenere</span>';
+            }
+            
             // Update nav styling - domains should stay highlighted
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('bg-primary-600/20', 'text-primary-400', 'border', 'border-primary-500/30');
@@ -1070,6 +1211,24 @@
             return div.innerHTML;
         }
 
+        function formatTtl(seconds) {
+            if (!seconds) return '-';
+            if (seconds >= 86400 && seconds % 86400 === 0) return `${seconds / 86400}d`;
+            if (seconds >= 3600 && seconds % 3600 === 0) return `${seconds / 3600}t`;
+            if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60}m`;
+            return `${seconds}s`;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' });
+            } catch {
+                return dateStr;
+            }
+        }
+
         function renderDnsRecords() {
             const container = document.getElementById('dns-list');
             
@@ -1113,7 +1272,7 @@
                                 
                                 <!-- Meta info -->
                                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-dark-500">
-                                    <span>TTL: ${r.ttl}s</span>
+                                    <span title="${r.ttl} sekunder">TTL: ${formatTtl(r.ttl)}</span>
                                     ${r.priority !== undefined ? `<span>Pri: ${r.priority}</span>` : ''}
                                     ${r.weight !== undefined ? `<span>Vekt: ${r.weight}</span>` : ''}
                                     ${r.port !== undefined ? `<span>Port: ${r.port}</span>` : ''}
@@ -1472,29 +1631,71 @@
                     return;
                 }
                 
-                container.innerHTML = invoices.map((inv, i) => `
-                    <div class="glass rounded-xl p-3 sm:p-4 animate-fade-in stagger-${(i % 5) + 1} opacity-0">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg ${inv.status === 'paid' || inv.status === 'settled' ? 'bg-green-500/20' : 'bg-yellow-500/20'} flex items-center justify-center shrink-0">
-                                    <svg class="w-5 h-5 ${inv.status === 'paid' || inv.status === 'settled' ? 'text-green-400' : 'text-yellow-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                container.innerHTML = invoices.map((inv, i) => {
+                    const isPaid = inv.status === 'paid' || inv.status === 'settled';
+                    const typeLabel = inv.type === 'credit_note' ? 'Kreditnota' : (inv.type === 'invoice' ? 'Faktura' : inv.type);
+                    return `
+                    <div class="glass rounded-xl p-4 sm:p-5 animate-fade-in stagger-${(i % 5) + 1} opacity-0 group hover:border-primary-500/30 transition-all">
+                        <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+                            <!-- Left: Icon and basic info -->
+                            <div class="flex items-start gap-3 flex-1">
+                                <div class="w-12 h-12 rounded-xl ${isPaid ? 'bg-green-500/20' : 'bg-yellow-500/20'} flex items-center justify-center shrink-0">
+                                    <svg class="w-6 h-6 ${isPaid ? 'text-green-400' : 'text-yellow-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                 </div>
-                                <div>
-                                    <p class="font-mono text-white font-medium text-sm sm:text-base">#${inv.id}</p>
-                                    <p class="text-xs sm:text-sm text-dark-400">${inv.type}</p>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="font-mono text-white font-semibold text-base sm:text-lg">#${inv.id}</p>
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${inv.type === 'credit_note' ? 'bg-blue-500/20 text-blue-400' : 'bg-dark-600 text-dark-300'}">${typeLabel}</span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-dark-400">
+                                        ${inv.issued_date ? `
+                                        <span class="flex items-center gap-1.5" title="Utstedt">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                            ${formatDate(inv.issued_date)}
+                                        </span>` : ''}
+                                        ${inv.due_date ? `
+                                        <span class="flex items-center gap-1.5 ${!isPaid ? 'text-yellow-400' : ''}" title="Forfall">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            ${formatDate(inv.due_date)}
+                                        </span>` : ''}
+                                        ${inv.paid_date ? `
+                                        <span class="flex items-center gap-1.5 text-green-400" title="Betalt">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            ${formatDate(inv.paid_date)}
+                                        </span>` : ''}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="font-mono text-white font-medium text-sm sm:text-base">${inv.amount} ${inv.currency}</p>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${inv.status === 'paid' || inv.status === 'settled' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">
-                                    ${inv.status}
-                                </span>
+                            
+                            <!-- Right: Amount and status -->
+                            <div class="flex items-center gap-4 sm:flex-col sm:items-end">
+                                <div class="text-right">
+                                    <p class="font-mono text-white font-bold text-lg sm:text-xl">${inv.amount} ${inv.currency}</p>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isPaid ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">
+                                        ${isPaid ? 'Betalt' : (inv.status === 'unpaid' ? 'Ubetalt' : inv.status)}
+                                    </span>
+                                </div>
+                                ${inv.url ? `
+                                <a href="${escapeHtml(inv.url)}" target="_blank" rel="noopener noreferrer" 
+                                   class="flex items-center gap-1.5 px-3 py-2 bg-dark-700 hover:bg-dark-600 rounded-xl text-sm text-white transition-colors shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Vis PDF
+                                </a>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (error) {
                 container.innerHTML = `
                     <div class="glass rounded-2xl p-8 text-center">
