@@ -297,6 +297,12 @@ def inject_csrf_token():
 
 # ==================== ROUTES ====================
 
+@app.route("/favicon.ico")
+def favicon():
+    """Serve favicon"""
+    return app.send_static_file("favicon.ico")
+
+
 @app.route("/")
 def index():
     """Hovedside"""
