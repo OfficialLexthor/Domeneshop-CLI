@@ -223,6 +223,7 @@
                     </svg>
                     <span class="font-medium">Innstillinger</span>
                 </a>
+                <p class="text-dark-600 text-xs text-center mt-3">Utviklet av Martin Clausen</p>
             </div>
         </aside>
 
@@ -474,6 +475,10 @@
                     <div id="dns-list" class="grid gap-3">
                         <!-- DNS records will be loaded here -->
                     </div>
+                    <!-- DNS Pagination -->
+                    <div id="dns-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                        <!-- Pagination will be rendered here -->
+                    </div>
                 </div>
 
                 <!-- Forwards Tab Content -->
@@ -508,6 +513,10 @@
                 </div>
                 <div id="invoices-list" class="grid gap-3">
                     <!-- Invoices will be loaded here -->
+                </div>
+                <!-- Invoice Pagination -->
+                <div id="invoices-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                    <!-- Pagination will be rendered here -->
                 </div>
             </section>
 
@@ -669,6 +678,15 @@
         // Pagination state
         let domainPage = 1;
         let domainsPerPage = 25;
+        
+        // Invoice pagination
+        let allInvoices = [];
+        let invoicePage = 1;
+        let invoicesPerPage = 10;
+        
+        // DNS pagination
+        let dnsPage = 1;
+        let dnsPerPage = 15;
         
         // Account state
         let accounts = [];
@@ -1191,6 +1209,7 @@
         function filterDnsByType(type) {
             currentDnsTypeFilter = type;
             filteredDnsRecords = type ? dnsRecords.filter(r => r.type === type) : [...dnsRecords];
+            dnsPage = 1; // Reset to first page when filter changes
             
             document.querySelectorAll('.dns-type-filter').forEach(btn => {
                 if (btn.dataset.type === type) {
@@ -1229,11 +1248,18 @@
             }
         }
 
+        function goToDnsPage(page) {
+            dnsPage = page;
+            renderDnsRecords();
+        }
+
         function renderDnsRecords() {
             const container = document.getElementById('dns-list');
+            const paginationContainer = document.getElementById('dns-pagination');
             
             if (!selectedDomain) {
                 container.innerHTML = '<p class="text-dark-400 text-sm sm:text-base">Velg et domene for å se DNS-poster</p>';
+                paginationContainer.innerHTML = '';
                 return;
             }
             
@@ -1246,10 +1272,17 @@
                         <p class="text-dark-400">${currentDnsTypeFilter ? 'Ingen DNS-poster av denne typen' : 'Ingen DNS-poster funnet'}</p>
                     </div>
                 `;
+                paginationContainer.innerHTML = '';
                 return;
             }
             
-            container.innerHTML = filteredDnsRecords.map((r, i) => {
+            const totalPages = Math.ceil(filteredDnsRecords.length / dnsPerPage);
+            if (dnsPage > totalPages) dnsPage = 1;
+            const start = (dnsPage - 1) * dnsPerPage;
+            const end = start + dnsPerPage;
+            const pageItems = filteredDnsRecords.slice(start, end);
+            
+            container.innerHTML = pageItems.map((r, i) => {
                 const isLongData = r.data && r.data.length > 50;
                 const escapedData = escapeHtml(r.data);
                 
@@ -1296,6 +1329,67 @@
                     </div>
                 </div>
             `}).join('');
+            
+            // DNS Pagination
+            if (totalPages > 1) {
+                const isMobile = window.innerWidth < 640;
+                let paginationHtml = `
+                    <div class="text-dark-400 text-xs sm:text-sm text-center sm:text-left">
+                        Viser ${start + 1}-${Math.min(end, filteredDnsRecords.length)} av ${filteredDnsRecords.length}
+                    </div>
+                    <div class="flex items-center justify-center gap-1">
+                `;
+                
+                paginationHtml += `
+                    <button onclick="goToDnsPage(${dnsPage - 1})" ${dnsPage === 1 ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${dnsPage === 1 ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                `;
+                
+                const maxVisible = isMobile ? 3 : 5;
+                let startPage = Math.max(1, dnsPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+                
+                if (startPage > 1 && !isMobile) {
+                    paginationHtml += `<button onclick="goToDnsPage(1)" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">1</button>`;
+                    if (startPage > 2) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `
+                        <button onclick="goToDnsPage(${i})" 
+                            class="px-2.5 sm:px-3 py-1.5 rounded-lg cursor-pointer text-sm ${i === dnsPage ? 'bg-primary-600 text-white' : 'text-dark-400 hover:bg-dark-700 hover:text-white'}">
+                            ${i}
+                        </button>
+                    `;
+                }
+                
+                if (endPage < totalPages && !isMobile) {
+                    if (endPage < totalPages - 1) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                    paginationHtml += `<button onclick="goToDnsPage(${totalPages})" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">${totalPages}</button>`;
+                }
+                
+                paginationHtml += `
+                    <button onclick="goToDnsPage(${dnsPage + 1})" ${dnsPage === totalPages ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${dnsPage === totalPages ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>`;
+                
+                paginationContainer.innerHTML = paginationHtml;
+            } else {
+                paginationContainer.innerHTML = filteredDnsRecords.length > 0 
+                    ? `<div class="text-dark-400 text-xs sm:text-sm w-full text-center">${filteredDnsRecords.length} DNS-post${filteredDnsRecords.length !== 1 ? 'er' : ''}</div>`
+                    : '';
+            }
         }
 
         function showDnsModal(isEdit = false) {
@@ -1593,6 +1687,7 @@
         async function loadInvoices() {
             const status = document.getElementById('invoice-filter').value;
             const container = document.getElementById('invoices-list');
+            const paginationContainer = document.getElementById('invoices-pagination');
             
             // Show skeleton loading
             container.innerHTML = Array(4).fill(0).map(() => `
@@ -1612,26 +1707,61 @@
                     </div>
                 </div>
             `).join('');
+            paginationContainer.innerHTML = '';
             
             try {
                 const url = status ? `/api/invoices?status=${status}` : '/api/invoices';
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to load invoices');
-                const invoices = await response.json();
+                allInvoices = await response.json();
+                invoicePage = 1;
+                renderInvoices();
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-dark-400">Kunne ikke laste fakturaer</p>
+                        <button onclick="loadInvoices()" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white text-sm cursor-pointer">
+                            Prøv igjen
+                        </button>
+                    </div>
+                `;
+                paginationContainer.innerHTML = '';
+                showToast('Kunne ikke laste fakturaer', 'error');
+            }
+        }
+
+        function goToInvoicePage(page) {
+            invoicePage = page;
+            renderInvoices();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderInvoices() {
+            const container = document.getElementById('invoices-list');
+            const paginationContainer = document.getElementById('invoices-pagination');
+            
+            if (allInvoices.length === 0) {
+                container.innerHTML = `
+                    <div class="glass rounded-2xl p-8 text-center">
+                        <svg class="w-12 h-12 mx-auto text-dark-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-dark-400">Ingen fakturaer funnet</p>
+                    </div>
+                `;
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            const totalPages = Math.ceil(allInvoices.length / invoicesPerPage);
+            const start = (invoicePage - 1) * invoicesPerPage;
+            const end = start + invoicesPerPage;
+            const pageItems = allInvoices.slice(start, end);
                 
-                if (invoices.length === 0) {
-                    container.innerHTML = `
-                        <div class="glass rounded-2xl p-8 text-center">
-                            <svg class="w-12 h-12 mx-auto text-dark-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <p class="text-dark-400">Ingen fakturaer funnet</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                container.innerHTML = invoices.map((inv, i) => {
+            container.innerHTML = pageItems.map((inv, i) => {
                     const isPaid = inv.status === 'paid' || inv.status === 'settled';
                     const typeLabel = inv.type === 'credit_note' ? 'Kreditnota' : (inv.type === 'invoice' ? 'Faktura' : inv.type);
                     return `
@@ -1696,19 +1826,64 @@
                         </div>
                     </div>
                 `}).join('');
-            } catch (error) {
-                container.innerHTML = `
-                    <div class="glass rounded-2xl p-8 text-center">
-                        <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="text-dark-400">Kunne ikke laste fakturaer</p>
-                        <button onclick="loadInvoices()" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white text-sm cursor-pointer">
-                            Prøv igjen
-                        </button>
+            
+            // Pagination
+            if (totalPages > 1) {
+                const isMobile = window.innerWidth < 640;
+                let paginationHtml = `
+                    <div class="text-dark-400 text-xs sm:text-sm text-center sm:text-left">
+                        Viser ${start + 1}-${Math.min(end, allInvoices.length)} av ${allInvoices.length}
                     </div>
+                    <div class="flex items-center justify-center gap-1">
                 `;
-                showToast('Kunne ikke laste fakturaer', 'error');
+                
+                paginationHtml += `
+                    <button onclick="goToInvoicePage(${invoicePage - 1})" ${invoicePage === 1 ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${invoicePage === 1 ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                `;
+                
+                const maxVisible = isMobile ? 3 : 5;
+                let startPage = Math.max(1, invoicePage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+                
+                if (startPage > 1 && !isMobile) {
+                    paginationHtml += `<button onclick="goToInvoicePage(1)" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">1</button>`;
+                    if (startPage > 2) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `
+                        <button onclick="goToInvoicePage(${i})" 
+                            class="px-2.5 sm:px-3 py-1.5 rounded-lg cursor-pointer text-sm ${i === invoicePage ? 'bg-primary-600 text-white' : 'text-dark-400 hover:bg-dark-700 hover:text-white'}">
+                            ${i}
+                        </button>
+                    `;
+                }
+                
+                if (endPage < totalPages && !isMobile) {
+                    if (endPage < totalPages - 1) paginationHtml += `<span class="text-dark-600 px-1">...</span>`;
+                    paginationHtml += `<button onclick="goToInvoicePage(${totalPages})" class="px-3 py-1.5 rounded-lg text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer text-sm">${totalPages}</button>`;
+                }
+                
+                paginationHtml += `
+                    <button onclick="goToInvoicePage(${invoicePage + 1})" ${invoicePage === totalPages ? 'disabled' : ''} 
+                        class="p-2 rounded-lg ${invoicePage === totalPages ? 'text-dark-600 cursor-not-allowed' : 'text-dark-400 hover:bg-dark-700 hover:text-white cursor-pointer'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>`;
+                
+                paginationContainer.innerHTML = paginationHtml;
+            } else {
+                paginationContainer.innerHTML = `<div class="text-dark-400 text-xs sm:text-sm w-full text-center">${allInvoices.length} faktura${allInvoices.length !== 1 ? 'er' : ''}</div>`;
             }
         }
 
